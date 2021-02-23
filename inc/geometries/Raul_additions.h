@@ -88,27 +88,29 @@ struct radial_cut
 struct Nablas //This structure needs a 3D grid to activate the nablas and use them to calculate grad perp in different components and the divergence.
 {
 	Nablas(aRealGeometry3d<double>& geom3d): m_g(geom3d) {
-		dg::blas2::transfer( dg::create::dx( m_g, dg::DIR_NEU, dg::centered), m_dR); //Derivative in R direction
-		m_dZ = dg::create::dy( m_g, dg::DIR_NEU, dg::centered); //Derivative in Z direction
-		m_dP = dg::create::dz( m_g, dg::DIR_NEU, dg::centered); //Derivative in parallel direction	
+		dg::blas2::transfer( dg::create::dx( m_g, dg::DIR, dg::centered), m_dR); //Derivative in R direction
+		dg::blas2::transfer( dg::create::dy( m_g, dg::DIR, dg::centered), m_dZ);
+		dg::blas2::transfer( dg::create::dz( m_g, dg::DIR, dg::centered), m_dP);
 		m_vol= dg::tensor::volume(m_g.metric()); } //volume tensor
 
 				
 	void GradPerp_R (const HVec& f, HVec& gradPerp_R){ //f the input scalar and c the vector field output
 	dg::blas2::symv( m_dR, f, gradPerp_R);	
-	std::cout<<"working"<<std::endl;
 	}	
 	
-	void GradPerp_Z (const HVec& f, HVec gradPerp_Z){ //f the input scalar and c the vector field output
+	void GradPerp_Z (const HVec& f, HVec& gradPerp_Z){ //f the input scalar and c the vector field output
 	dg::blas2::symv( m_dZ, f, gradPerp_Z);
 	}	
 			
-	void div ( HVec v_R, HVec v_Z, HVec v_P, HVec& F){ // input the three components of the vector to do the divergence
-	dg::HVec c_R,c_Z,c_P, inv_vol;
-	dg::blas1::pointwiseDivide(1,m_vol,inv_vol);
-	dg::blas1::pointwiseDot(inv_vol, v_R, v_R);
-	dg::blas1::pointwiseDot(inv_vol, v_Z, v_Z);
-	dg::blas1::pointwiseDot(inv_vol, v_P, v_P);
+	void div (HVec& v_R, HVec& v_Z, HVec& v_P, HVec& F){ // input the three components of the vector to do the divergence
+	dg::HVec c_R,c_Z,c_P;
+	c_R=v_R;
+	c_Z=v_Z;
+	c_P=v_P;
+	const dg::HVec ones = dg::evaluate( dg::one, m_g);	
+	dg::blas1::pointwiseDivide(v_R, m_vol, v_R);
+	dg::blas1::pointwiseDivide(v_Z, m_vol, v_Z);
+	dg::blas1::pointwiseDivide(v_P, m_vol, v_P);
 	dg::blas2::symv( m_dR, v_R, c_R);
 	dg::blas2::symv( m_dZ, v_Z, c_Z);
 	dg::blas2::symv( m_dP, v_P, c_P);
@@ -123,6 +125,7 @@ struct Nablas //This structure needs a 3D grid to activate the nablas and use th
 	HMatrix m_dZ;
 	HMatrix m_dP;
 	HVec m_vol;
+	HVec m_inv_vol;
 	
 };
 };//namespace geo
