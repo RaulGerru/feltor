@@ -446,33 +446,220 @@ std::vector<Record> diagnostics2d_list = {
         }
     },
     ///-----------------------RAUL VORTICITY ADDITIONS-------------------///
+    
+    ///IMPORTANT: v.f.gradN is the gradient of denistyu and three components and gradP is of the potential
 
-    {"elec_vorticity", "Electric vorticity", false,
+    {"elec_vorticity", "Electric vorticity", false, //MISSING M_I: PERFECT
         []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {
              dg::geo::Nablas nabla(grid);
+             dg::HVec zeros = dg::evaluate( dg::zero, m_g);
              dg::HVec InvB= dg::pullback( dg::geo::Bmodule(v.InvB), geom);
-             dg::HVec v_result;
-             nabla.GradPerp(v.f.potential(0), v_result)
-             dg::blas1::scal(v.f.density(1), v_result)   
-             dg::blas1::scal(InvB, v_result)    
-             dg::blas1::scal(InvB, v_result)         
-             nabla.div(v_result, result)
+             dg::HVec v_result_R=v.f.gradP(1)[0];
+             dg::HVec v_result_Z=v.f.gradP(1)[1];
+             dg::blas1::scal(v.f.density(1), v_result_R)
+             dg::blas1::scal(v.f.density(1), v_result_Z) 
+             dg::blas1::scal(InvB, v_result_R)    
+             dg::blas1::scal(InvB, v_result_R)
+             dg::blas1::scal(InvB, v_result_Z)    
+             dg::blas1::scal(InvB, v_result_Z)  
+             dg::tensor.multiply2d(grid.metric(), v_result_R, v_result_Z, v_result_R, v_result_Z); //to transform the vector from covariant to contravariant    
+             nabla.div(v_result_R, v_result_Z, zeros, result)
              
         }
     },
-    {"dielec_vorticity", "Dielectric vorticity", false,
+    
+    {"dielec_vorticity", "Dielectric vorticity", false, //MISSING Q, T AND M_I: PERFECT
         []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {
              dg::geo::Nablas nabla(grid);
-             InvB= dg::pullback( dg::geo::Bmodule(v.InvB), geom);
-             dg::HVec result=InvB;
-             dg::HVec v_result;
-             dg::blas1::scal(v.f.density(1), result)  
-             dg::blas1::scal(invB, result)  
-             nabla.GradPerp(result, v_result) 
-             nabla.div(v_result, result)
+             dg::HVec zeros = dg::evaluate( dg::zero, m_g);
+             dg::HVec InvB= dg::pullback( dg::geo::Bmodule(v.InvB), geom);
+             dg::HVec v_result_R=v.f.gradN(1)[0];
+             dg::HVec v_result_Z=v.f.gradN(1)[1];
+             dg::blas1::scal(InvB, v_result_R);    
+             dg::blas1::scal(InvB, v_result_R);
+             dg::blas1::scal(InvB, v_result_Z);    
+             dg::blas1::scal(InvB, v_result_Z);
+             dg::tensor.multiply2d(grid.metric(), v_result_R, v_result_Z, v_result_R, v_result_Z); //to transform the vector from covariant to contravariant             
+             nabla.div(v_result_R, v_result_Z, zeros, result);
              
         }
     },
+    
+     {"elec_ tensor term", "electric tensor term", false, // PERFECT 
+        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {
+             dg::geo::Nablas nabla(grid);
+             dg::HVec zeros = dg::evaluate( dg::zero, m_g);
+             dg::HVec InvB= dg::pullback( dg::geo::Bmodule(v.InvB), geom);
+             dg::HVec N=v.f.density(1);
+             dg::HVec grad_pot_R=v.f.gradP(1)[0];
+			 dg::HVec grad_pot_Z=v.f.gradP(1)[1];
+             dg::HVec u_E_R, u_E_Z;
+             nabla.v_cross_b(grad_pot_R, grad_pot_Z, u_E_R, u_E_Z);
+             dg::blas1::PointwiseDot(InvB, u_E_R, u_E_R); //maybe scal instead of PointwiseDot? No, I should do it with pointwise divide volume
+             dg::blas1::PointwiseDot(InvB, u_E_Z, u_E_Z);
+             dg::blas1::PointwiseDot(N, grad_pot_Z, grad_pot_Z); //maybe scal instead of PointwiseDot? No, I should do it with pointwise divide volume
+             dg::blas1::PointwiseDot(N, grad_pot_R, grad_pot_R);
+             
+             dg::HVec div_grad_perp_pot, grad_perp_pot_nabla_u_E_R, grad_perp_pot_nabla_u_E_Z;
+             
+             nabla.div(grad_pot_R, grad_pot_Z, zeros, div_grad_perp_pot);           
+             nabla.v_dot_nabla(grad_pot_R, grad_pot_Z, zeros, u_E_R, grad_perp_pot_nabla_u_E_R); 
+             nabla.v_dot_nabla(grad_pot_R, grad_pot_Z, zeros, u_E_Z, grad_perp_pot_nabla_u_E_Z); 
+             dg::blas1::PointwiseDot(div_grad_perp_pot, u_E_R, u_E_R);
+             dg::blas1::PointwiseDot(div_grad_perp_pot, u_E_Z, u_E_Z);
+             dg::blas1::axpby(1,u_E_R, 1, grad_perp_pot_nabla_u_E_R);
+             dg::blas1::axpby(1,u_E_Z, 1, grad_perp_pot_nabla_u_E_Z);
+             nabla.div(grad_perp_pot_nabla_u_E_R, grad_perp_pot_nabla_u_E_Z, zeros, result);
+             dg::blas1::PointwiseDot(InvB, result, result);
+             dg::blas1::PointwiseDot(InvB, result, result);
+        }
+    },
+    
+         {"dielec_ tensor term", "Dielectric tensor term", false, // PERFECT
+        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {
+             dg::geo::Nablas nabla(grid);
+             dg::HVec zeros = dg::evaluate( dg::zero, m_g);
+             dg::HVec InvB= dg::pullback( dg::geo::Bmodule(v.InvB), geom);
+             dg::HVec grad_N_R=v.f.gradN(1)[0];
+			 dg::HVec grad_N_Z=v.f.gradN(1)[1];
+			 dg::HVec grad_pot_R=v.f.gradP(1)[0];
+			 dg::HVec grad_pot_Z=v.f.gradP(1)[1];
+			 dg::HVec u_E_R, u_E_Z;
+             nabla.v_cross_b(grad_pot_R, grad_pot_Z, u_E_R, u_E_Z);
+             dg::blas1::PointwiseDot(InvB, u_E_R, u_E_R); //maybe scal instead of PointwiseDot? No, I should do it with pointwise divide volume
+             dg::blas1::PointwiseDot(InvB, u_E_Z, u_E_Z);
+             
+			 dg::HVec div_grad_perp_N, grad_perp_N_nabla_u_E_R, grad_perp_N_nabla_u_E_Z ;
+
+             nabla.div(grad_N_R, grad_N_Z, zeros, div_grad_perp_N)
+             nabla.v_dot_nabla(grad_N_R, grad_N_Z, zeros, u_E_R, grad_perp_N_nabla_u_E_R); 
+             nabla.v_dot_nabla(grad_N_R, grad_N_Z, zeros, u_E_Z, grad_perp_N_nabla_u_E_Z); 
+             dg::blas1::PointwiseDot(div_grad_perp_N, u_E_R);
+             dg::blas1::PointwiseDot(div_grad_perp_N, u_E_Z);
+             dg::blas1::axpby(1,u_E_R, 1, grad_perp_N_nabla_u_E_R);
+             dg::blas1::axpby(1,u_E_Z, 1, grad_perp_N_nabla_u_E_Z);
+             nabla.div(grad_perp_N_nabla_u_E_R, grad_perp_N_nabla_u_E_Z, zeros, result);
+             dg::blas1::PointwiseDot(InvB, result, result);
+             dg::blas1::PointwiseDot(InvB, result, result);
+             
+        }
+    },
+    
+    {"par_current_term", "Parallel current term", false, 
+        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {
+             dg::geo::Nablas nabla(grid);
+             dg::HVec zeros = dg::evaluate( dg::zero, m_g);  
+             dg::HVec J_par, grad_par_J_par, grad_B_part;
+             dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), J_par);
+             dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., J_par);  
+             dg::geo::ds_centered( J_par, grad_par_J_par);
+             dg::pointwiseDot(J_par, dg::geo::GradLnB(geom), grad_B_part);
+             dg::blas1::axbpy(1, grad_B_part, -1, grad_par_J_par, 1, result)         
+        }
+    },
+    
+    {"mag_term", "Magnetization term", false, 
+        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {
+             dg::geo::Nablas nabla(grid);
+             dg::HVec zeros = dg::evaluate( dg::zero, m_g);
+             dg::HVec half= dg::evaluate(dg:ones, m_g);
+             dg::blas1::scal( half, 0.5);
+             dg::HVec b_perp_R, b_perp_Z;  
+             nabla.v_cross_b (v.f.gradA()[0], v.f.gradA()[1], b_perp_R, b_perp_Z);
+             dg::blas1::PointwiseDot(InvB, b_perp_R, b_perp_R);
+             dg::blas1::PointwiseDot(InvB, b_perp_Z, b_perp_Z);
+             
+             dg::HVec grad_N_R=v.f.gradN(1)[0];
+             dg::HVec grad_N_Z=v.f.gradN(1)[1];
+             dg::HVec grad_U_R=v.f.gradU(1)[0];
+             dg::HVec grad_U_Z=v.f.gradU(1)[1];   
+             dg::HVec N=v.f.density(1);
+             dg::HVc U=v.f.velocity(1);
+             dg::blas1::pointwiseDot(U, grad_N_R, grad_N_R);
+             dg::blas1::pointwiseDot(U, grad_N_Z, grad_N_Z);
+             dg::blas1::pointwiseDot(N, grad_U_R, grad_U_R);
+             dg::blas1::pointwiseDot(N, grad_U_Z, grad_U_Z);
+             dg::blas1::axpby(1, grad_N_R, 1, grad_U_R);
+             dg::blas1::axpby(1, grad_N_Z, 1, grad_U_Z);
+             nabla.div(grad_U_R, grad_U_Z, zeros, result);
+             
+             dg::blas1::pointwiseDot(result, b_perp_R, b_perp_R);
+             dg::blas1::pointwiseDot(result, b_perp_Z, b_perp_Z);
+             nabla.div(b_perp_R, b_perp_Z, zeros, result);
+             dg::blas1::pointwiseDot(InvB, result, result);
+             dg::blas1::pointwiseDot(InvB, result, result);
+             dg::blas1::pointwiseDot(half, result, result);
+             
+             
+        }
+    },
+    
+    {"curvature_term", "curvature term", false, 
+        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {
+             dg::geo::Nablas nabla(grid);
+             dg::HVec zeros = dg::evaluate( dg::zero, m_g);  
+             dg::HVec N=v.f.density(1);
+             dg::HVc U=v.f.velocity(1);
+             dg::HVec curv_R=v.f.curv()[0];
+             dg::HVec curv_Z=v.f.curv()[1];
+             dg::HVec curv_kappa_R=v.f.curvKappa()[0];
+             dg::HVec curv_kappa_Z=v.f.curvKappa()[1];
+             
+             dg::blas1::pointwiseDot(N, curv_R, curv_R);
+             dg::blas1::pointwiseDot(N, curv_Z, curv_Z);
+             
+             dg::blas1::pointwiseDot(U, U, U);
+             dg::blas1::pointwiseDot(N, U, U);
+             dg::blas1::pointwiseDot(U, curv_kappa_R, curv_kappa_R);
+             dg::blas1::pointwiseDot(U, curv_kappa_Z, curv_kappa_Z);
+             
+             dg::blas1::axpby(1, curv_R, 1, curv_kappa_R);
+             dg::blas1::axpby(1, curv_Z, 1, curv_kappa_Z);
+             
+             nabla.div(curv_kappa_R, curv_kappa_Z, zeros, result);
+             
+             
+        }
+    },
+    
+    {"elec_S_vorticity", "Electric source vorticity", false, //MISSING M_I: PERFECT
+        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {
+             dg::geo::Nablas nabla(grid);
+             dg::HVec zeros = dg::evaluate( dg::zero, m_g);
+             dg::HVec InvB= dg::pullback( dg::geo::Bmodule(v.InvB), geom);
+             dg::HVec v_result_R=v.f.gradP(1)[0];
+             dg::HVec v_result_Z=v.f.gradP(1)[1];
+             dg::blas1::scal(v.f.density_source(1), v_result_R)
+             dg::blas1::scal(v.f.density_source(1), v_result_Z) 
+             dg::blas1::scal(InvB, v_result_R)    
+             dg::blas1::scal(InvB, v_result_R)
+             dg::blas1::scal(InvB, v_result_Z)    
+             dg::blas1::scal(InvB, v_result_Z)  
+             dg::tensor.multiply2d(grid.metric(), v_result_R, v_result_Z, v_result_R, v_result_Z); //to transform the vector from covariant to contravariant    
+             nabla.div(v_result_R, v_result_Z, zeros, result)
+             
+        }
+    },
+    
+    {"dielec_S_vorticity", "Dielectric source vorticity", false, //MISSING Q, T AND M_I: PERFECT
+        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {
+             dg::geo::Nablas nabla(grid);
+             dg::HVec zeros = dg::evaluate( dg::zero, m_g);
+             dg::HVec InvB= dg::pullback( dg::geo::Bmodule(v.InvB), geom);
+             v.f.compute_gradSN( 0, v.tmp);
+             dg::HVec v_result_R=v.tmp[0];
+             dg::HVec v_result_Z=v.tmp(1)[1];
+             dg::blas1::scal(InvB, v_result_R);    
+             dg::blas1::scal(InvB, v_result_R);
+             dg::blas1::scal(InvB, v_result_Z);    
+             dg::blas1::scal(InvB, v_result_Z);
+             dg::tensor.multiply2d(grid.metric(), v_result_R, v_result_Z, v_result_R, v_result_Z); //to transform the vector from covariant to contravariant             
+             nabla.div(v_result_R, v_result_Z, zeros, result);
+             
+        }
+    },
+    
+    
     ///----------------------EXTRA RAUL ADDITION-------------------------///
         {"er", "Radial electric field", false,
         []( DVec& result, Variables& v){
