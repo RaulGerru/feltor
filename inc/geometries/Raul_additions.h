@@ -107,12 +107,11 @@ struct Nablas //This structure needs a 3D grid to activate the nablas and use th
 	dg::tensor::multiply3d(m_metric, f_R, f_Z, f_P, grad_R, grad_Z, grad_P) //OUTPUT: CONTRAVARIANT
 	}
 	
-	void Grad_perp_f(const HVec& f, HVec& grad_R, HVec& grad_Z, HVec& grad_P){ //f the input scalar and c the vector field output
+	void Grad_perp_f(const HVec& f, HVec& grad_R, HVec& grad_Z){ //f the input scalar and c the vector field output
 	dg::HVec f_R, f_Z, f_P; //CAN I USE grad_R variables and avoid this definitions??
 	dg::blas2::symv( m_dR, f, f_R);
-	dg::blas2::symv( m_dZ, f, f_Z);
-	f_P=dg::evaluate(dg::zero, m_g);
-	dg::tensor::multiply3d(m_metric, f_R, f_Z, f_P, grad_R, grad_Z, grad_P) //OUTPUT: CONTRAVARIANT
+	dg::blas2::symv( m_dZ, f, f_Z); //OUTPUT: COVARIANT
+	//dg::tensor::multiply2d(m_metric, f_R, f_Z, grad_R, grad_Z) //IF ACTIVE OUTPUT: CONTRAVARIANT
 	}		
 	
 			
