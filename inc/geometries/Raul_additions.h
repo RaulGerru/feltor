@@ -90,7 +90,6 @@ struct Nablas //This structure needs a 3D grid to activate the nablas and use th
 	Nablas(aRealGeometry3d<double>& geom3d, TokamakMagneticField& mag): m_g(geom3d),m_mag(mag) {
 		dg::blas2::transfer( dg::create::dx( m_g, dg::DIR, dg::centered), m_dR); //Derivative in R direction
 		dg::blas2::transfer( dg::create::dy( m_g, dg::DIR, dg::centered), m_dZ);
-		dg::blas2::transfer( dg::create::dz( m_g, dg::DIR, dg::centered), m_dP);
 		m_vol= dg::tensor::volume(m_g.metric());
 		m_weights=dg::create::volume(m_g);
 		m_bHat=dg::geo::createBHat(m_mag);

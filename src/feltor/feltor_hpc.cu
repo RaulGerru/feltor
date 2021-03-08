@@ -222,8 +222,9 @@ int main( int argc, char* argv[])
     gradPsip[1] =  dg::evaluate( mag.psipZ(), grid);
     gradPsip[2] =  resultD; //zero
     DVec hoo = dg::pullback( dg::geo::Hoo( mag), grid);
+    dg::geo::Nablas nabla(grid); //RAUL: DEFINE IT AS TEMPLATE WHEN YOU HAVE DONE!!!
     feltor::Variables var = {
-        feltor, p, mag, gradPsip, gradPsip, hoo
+        feltor, p, mag, nabla, gradPsip, gradPsip, hoo
     };
     // the vector ids
     std::map<std::string, int> id3d, id4d, restart_ids;
