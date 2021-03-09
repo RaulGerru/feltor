@@ -224,7 +224,7 @@ int main( int argc, char* argv[])
     DVec hoo = dg::pullback( dg::geo::Hoo( mag), grid);
     dg::geo::Nablas nabla(grid); //RAUL: DEFINE IT AS TEMPLATE WHEN YOU HAVE DONE!!!
     feltor::Variables var = {
-        feltor, p, mag, nabla, gradPsip, gradPsip, hoo
+        feltor, p, mag, nabla, gradPsip, gradPsip, gradPsip, gradPsip, hoo
     };
     // the vector ids
     std::map<std::string, int> id3d, id4d, restart_ids;

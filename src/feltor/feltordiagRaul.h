@@ -196,8 +196,8 @@ struct Variables{
     dg::geo::Nablas nabla;
     std::array<DVec, 3> gradPsip;
     std::array<DVec, 3> tmp;
-    std::array<DVec, 3> tmp2; //I NEED TO DEFINE IT IN THE FELTOR_HPC.CU!!!! TO DO!!!
-     std::array<DVec, 3> tmp3; //I NEED TO DEFINE IT IN THE FELTOR_HPC.CU!!!! TO DO!!!
+    std::array<DVec, 3> tmp2;
+    std::array<DVec, 3> tmp3;
     DVec hoo; //keep hoo there to avoid pullback
 };
 
@@ -480,16 +480,15 @@ std::vector<Record> diagnostics2d_list = {
     
      {"elec_ tensor term", "electric tensor term", false, // DEFINITE
         []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {            
-             dg::blas1::copy(v.f.gradP(0)[0], v.tmp[0]);
-             dg::blas1::copy(v.f.gradP(0)[1], v.tmp[1]);
-             nabla.v_cross_b(v.tmp[0], v.tmp[1], v.tmp2[0], v.tmp2[1]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[0], v.tmp2[0]); 
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]);
-             dg::blas1::pointwiseDot(v.f.density(1), v.tmp[0], v.tmp[0]);
-             dg::blas1::pointwiseDot(v.f.density(1), v.tmp[1], v.tmp[1]);
-             v.nabla.div(v.tmp[0], v.tmp[1], 0, v.tmp[3]);
-             nabla.v_dot_nabla(v.tmp[0], v.tmp[1], 0, v.tmp2[0], v.tmp3[0]); 
-             nabla.v_dot_nabla(v.tmp[0], v.tmp[1], 0, v.tmp2[1], v.temp3[1]); 
+             nabla.v_cross_b(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); //u_E
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
+             
+             dg::blas1::pointwiseDot(v.f.density(1), v.f.gradP(0)[0], v.tmp2[0]); //N nabla_phi
+             dg::blas1::pointwiseDot(v.f.density(1), v.f.gradP(0)[1], v.tmp2[1]);
+             v.nabla.div(v.tmp2[0], v.tmp2[1], 0, v.tmp[3]);
+             nabla.v_dot_nabla(v.tmp2[0], v.tmp2[1], 0, v.tmp[0], v.tmp3[0]); 
+             nabla.v_dot_nabla(v.tmp2[0], v.tmp2[1], 0, v.tmp[1], v.tmp3[1]); 
              dg::blas1::pointwiseDot(v.tmp[3], v.tmp2[0], v.tmp2[0]);
              dg::blas1::pointwiseDot(v.tmp[3], v.tmp2[1], v.tmp2[1]);          
              dg::blas1::axpby(1,v.tmp2[0], 1, v.tmp3[0]);
@@ -500,21 +499,17 @@ std::vector<Record> diagnostics2d_list = {
     
          {"dielec_ tensor term", "Dielectric tensor term", false, //DEFINITE
         []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {            
-             dg::blas1::copy(v.f.gradP(0)[0], v.tmp[0]);
-             dg::blas1::copy(v.f.gradP(0)[1], v.tmp[1]);
-             nabla.v_cross_b(v.tmp[0], v.tmp[1], v.tmp2[0], v.tmp2[1]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[0], v.tmp2[0]); 
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]);
-             dg::blas1::copy(v.f.gradN(1)[0], v.tmp[0]);
-             dg::blas1::copy(v.f.gradN(1)[1], v.tmp[1]);
-             v.nabla.div(v.tmp[0], v.tmp[1], 0, v.tmp[3]);
-             nabla.v_dot_nabla(v.tmp[0], v.tmp[1], 0, v.tmp2[0], v.tmp3[0]); 
-             nabla.v_dot_nabla(v.tmp[0], v.tmp[1], 0, v.tmp2[1], v.temp3[1]); 
-             dg::blas1::pointwiseDot(v.tmp[3], v.tmp2[0], v.tmp2[0]);
-             dg::blas1::pointwiseDot(v.tmp[3], v.tmp2[1], v.tmp2[1]);          
-             dg::blas1::axpby(1,v.tmp2[0], 1, v.tmp3[0]);
-             dg::blas1::axpby(1,v.tmp2[1], 1, v.tmp3[1]);
-             nabla.div(v.tmp3[0], v.tmp3[1], 0, result);
+             nabla.v_cross_b(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); //u_E
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
+             v.nabla.div(v.f.gradN(1)[0],v.f.gradN(1)[1], 0, v.tmp[2]);
+             nabla.v_dot_nabla(v.f.gradN(1)[0], v.f.gradN(1)[1], 0, v.tmp[0], v.tmp2[0]); 
+             nabla.v_dot_nabla(v.f.gradN(1)[0], v.f.gradN(1)[1], 0, v.tmp[1], v.tmp2[1]); 
+             dg::blas1::pointwiseDot(v.tmp[2], v.tmp[0], v.tmp[0]);
+             dg::blas1::pointwiseDot(v.tmp[2], v.tmp[1], v.tmp[1]);          
+             dg::blas1::axpby(1,v.tmp[0], 1, v.tmp2[0]);
+             dg::blas1::axpby(1,v.tmp[1], 1, v.tmp2[1]);
+             nabla.div(v.tmp[0], v.tmp2[1], 0, result);
              
         }
     },
