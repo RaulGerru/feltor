@@ -449,9 +449,9 @@ std::vector<Record> diagnostics2d_list = {
         }
     },
     ///-----------------------RAUL VORTICITY ADDITIONS-------------------///
-
+ //v.f.projection()
     {"elec_vorticity", "Electric vorticity", false, //MISSING M_I: DEFINITE 
-        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {
+        []( DVec& result, Variables& v) { //DON'T NEEDS THE GRIDS INPUTS our geoms
 			 dg::blas1::copy(v.f.gradP(0)[0], v.tmp[0]);
              dg::blas1::copy(v.f.gradP(0)[1], v.tmp[1]);
              dg::blas1::pointwiseDot(-1, v.f.density(1), v.tmp[0], 1, v.tmp[0]); //WORKS LIKE this
@@ -460,62 +460,73 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);    
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);  
-             dg::tensor::multiply2d(grid.metric(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    
-             v.nabla.div(v.tmp[0], v.tmp[1], 0, result);            
+             dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    //CHANGE THE METRICS TO projection
+             v.nabla.div(v.tmp[0], v.tmp[1], result); 
         }
     },
     
     {"dielec_vorticity", "Dielectric vorticity", false, //MISSING Q, T AND M_I: DEFINITE
-        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {          
+        []( DVec& result, Variables& v) {          
 			 dg::blas1::copy(v.f.gradN(1)[0], v.tmp[0]);
              dg::blas1::copy(v.f.gradN(1)[1], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);    
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);  
-             dg::tensor::multiply2d(grid.metric(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    
-             v.nabla.div(v.tmp[0], v.tmp[1], 0, result);         
+             dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    
+             v.nabla.div(v.tmp[0], v.tmp[1], result);
         }
     },
     
      {"elec_ tensor term", "electric tensor term", false, // DEFINITE
-        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {            
-             nabla.v_cross_b(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
+        []( DVec& result, Variables& v ) {            
+             nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); //u_E
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
              
              dg::blas1::pointwiseDot(v.f.density(1), v.f.gradP(0)[0], v.tmp2[0]); //N nabla_phi
              dg::blas1::pointwiseDot(v.f.density(1), v.f.gradP(0)[1], v.tmp2[1]);
-             v.nabla.div(v.tmp2[0], v.tmp2[1], 0, v.tmp[3]);
-             nabla.v_dot_nabla(v.tmp2[0], v.tmp2[1], 0, v.tmp[0], v.tmp3[0]); 
-             nabla.v_dot_nabla(v.tmp2[0], v.tmp2[1], 0, v.tmp[1], v.tmp3[1]); 
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[0], v.tmp2[0]); 
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[0], v.tmp2[0]); 
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]);
+             v.nabla.div(v.tmp2[0], v.tmp2[1], v.tmp[3]);
+             nabla.v_dot_nabla(v.tmp2[0], v.tmp2[1], v.tmp[0], v.tmp3[0]); 
+             nabla.v_dot_nabla(v.tmp2[0], v.tmp2[1], v.tmp[1], v.tmp3[1]); 
              dg::blas1::pointwiseDot(v.tmp[3], v.tmp2[0], v.tmp2[0]);
              dg::blas1::pointwiseDot(v.tmp[3], v.tmp2[1], v.tmp2[1]);          
              dg::blas1::axpby(1,v.tmp2[0], 1, v.tmp3[0]);
              dg::blas1::axpby(1,v.tmp2[1], 1, v.tmp3[1]);
-             nabla.div(v.tmp3[0], v.tmp3[1], 0, result);
+             nabla.div(v.tmp3[0], v.tmp3[1], result);
         }
     },
     
          {"dielec_ tensor term", "Dielectric tensor term", false, //DEFINITE
-        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {            
-             nabla.v_cross_b(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
+        []( DVec& result, Variables& v) {            
+             nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); //u_E
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
-             v.nabla.div(v.f.gradN(1)[0],v.f.gradN(1)[1], 0, v.tmp[2]);
-             nabla.v_dot_nabla(v.f.gradN(1)[0], v.f.gradN(1)[1], 0, v.tmp[0], v.tmp2[0]); 
-             nabla.v_dot_nabla(v.f.gradN(1)[0], v.f.gradN(1)[1], 0, v.tmp[1], v.tmp2[1]); 
+             
+             dg::blas1::pointwiseDivide(v.f.binv(), v.f.gradN(1)[0], v.tmp2[0]);
+             dg::blas1::pointwiseDivide(v.f.binv(), v.tmp2[0], v.tmp2[0]);
+             dg::blas1::pointwiseDivide(v.f.binv(), v.f.gradN(1)[1], v.tmp2[1]);
+             dg::blas1::pointwiseDivide(v.f.binv(), v.tmp2[1], v.tmp2[1]);
+             
+             v.nabla.div(v.tmp2[0],v.tmp2[1], v.tmp[2]);
+             
+             nabla.v_dot_nabla(v.tmp2[0], v.tmp2[1], v.tmp[0], v.tmp2[2]); 
+             nabla.v_dot_nabla(v.tmp2[0], v.tmp2[1], v.tmp[1], v.tmp2[1]); 
+             
              dg::blas1::pointwiseDot(v.tmp[2], v.tmp[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.tmp[2], v.tmp[1], v.tmp[1]);          
-             dg::blas1::axpby(1,v.tmp[0], 1, v.tmp2[0]);
+             dg::blas1::axpby(1,v.tmp[0], 1, v.tmp2[2]);
              dg::blas1::axpby(1,v.tmp[1], 1, v.tmp2[1]);
-             nabla.div(v.tmp[0], v.tmp2[1], 0, result);
-             
+             nabla.div(v.tmp2[2], v.tmp2[1], result);            
         }
     },
     
     {"par_current_term", "Parallel current term", false, //DEFINITE
-        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) { 
+        []( DVec& result, Variables& v) { 
              dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), v.tmp[0]);
              dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., v.tmp[0]);  
              dg::geo::ds_centered( v.tmp[0], v.tmp[1]);
@@ -525,37 +536,48 @@ std::vector<Record> diagnostics2d_list = {
     },
     
     {"mag_term", "Magnetization term", false, //DEFINITE
-        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {
+        []( DVec& result, Variables& v ) {
              dg::blas1::copy(dg::evaluate(dg:ones, m_g), v.tmp[0]);
-             dg::blas1::scal( v.tmp[0], 0.5); 
-             nabla.v_cross_b (v.f.gradA()[0], v.f.gradA()[1], v.tmp[1], v.tmp[2]);
-             dg::blas1::pointwiseDot(v.tmp[0], v.tmp[1], v.tmp[1]);
-             dg::blas1::pointwiseDot(v.tmp[0], v.tmp[2], v.tmp[2]);
+             dg::blas1::scal(v.tmp[0], 0.5);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);//1/2B^2
+             
+             nabla.b_cross_v (v.f.gradA()[0], v.f.gradA()[1], v.tmp[1], v.tmp[2]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[2], v.tmp[2]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[2], v.tmp[2]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[2], v.tmp[2]);
-             dg::blas1::pointwiseDot(v.f.velocity(1), v.f.gradN(1)[0], v.tmp2[0]);
+             dg::blas1::scal(v.tmp[1], -1);
+             dg::blas1::scal(v.tmp[2], -1);//b_\perp
+
+			 dg::blas1::pointwiseDot(v.f.velocity(1), v.f.gradN(1)[0], v.tmp2[0]);
              dg::blas1::pointwiseDot(v.f.velocity(1), v.f.gradN(1)[1], v.tmp2[1]);
              dg::blas1::pointwiseDot(v.f.density(1), v.f.gradU(1)[0], v.tmp3[0]);
-             dg::blas1::pointwiseDot(v.f.density(1), v.f.gradU(1)[1], v.tmp3[1]);
+             dg::blas1::pointwiseDot(v.f.density(1), v.f.gradU(1)[1], v.tmp3[1]);	
+             dg::blas1::pointwiseDot(v.tmp[0], v.tmp2[1], v.tmp2[1]);
+             dg::blas1::pointwiseDot(v.tmp[0], v.tmp2[2], v.tmp2[2]);
+             dg::blas1::pointwiseDot(v.tmp[0], v.tmp3[1], v.tmp3[1]);
+             dg::blas1::pointwiseDot(v.tmp[0], v.tmp3[2], v.tmp3[2]);	
              dg::blas1::axpby(1, v.tmp2[0], 1, v.tmp3[0]);
              dg::blas1::axpby(1, v.tmp2[1], 1, v.tmp3[1]);
-             nabla.div(v.tmp3[0], v.tmp3[1], 0, result);     
+             nabla.div(v.tmp3[0], v.tmp3[1], result);
+                  
              dg::blas1::pointwiseDot(result, v.tmp[1], v.tmp[1]);
              dg::blas1::pointwiseDot(result, v.tmp[2], v.tmp[2]);
-             nabla.div(v.tmp[1], v.tmp[2], 0, result);         
+             nabla.div(v.tmp[1], v.tmp[2], result);      
         }
     },
     
-    {"curvature_term", "curvature term", false, //DEFINITE
-        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {           
+    {"curv_term", "curvature term", false, //DEFINITE
+        []( DVec& result, Variables& v ) {           
             dg::blas1::copy(v.f.density(1), v.tmp[0]); 
             dg::blas1::axpby(v.p.tau[0], v.f.density(0), v.p.tau[1], v.tmp[0]);
+            dg::blas1::pointwiseDot(v.tmp[0], v.f.curv()[1], v.tmp[1]);  
             dg::blas1::pointwiseDot(v.tmp[0], v.f.curv()[0], v.tmp[0]);
-            dg::blas1::pointwiseDot(v.tmp[0], v.f.curv()[1], v.tmp[1]);              
+             nabla.div(v.tmp[0], v.tmp[1], result);  
+        }
+    },
+    
+     {"curvKappa_term", "curvature Kappa term", false, //DEFINITE
+        []( DVec& result, Variables& v ) {                       
             dg::blas1::copy(v.f.density(0), v.tmp2[0]); 
             dg::blas1::copy(v.f.density(1), v.tmp2[1]);  
             dg::blas1::pointwiseDot(v.f.velocity(0), v.tmp2[0], v.tmp2[0]);
@@ -565,81 +587,94 @@ std::vector<Record> diagnostics2d_list = {
             dg::blas1::axpby(v.p.mu[0], v.tmp2[0], v.p.mu[1], v.tmp2[1]); 
             dg::blas1::pointwiseDot(v.tmp2[1], v.f.curvKappa()[0], v.tmp2[0]);
             dg::blas1::pointwiseDot(v.tmp2[1], v.f.curvKappa()[1], v.tmp2[1]);               
-            dg::blas1::axpby(1, v.tmp1[0], 1, v.tmp[0]);
-            dg::blas1::axpby(1, v.tmp1[1], 1, v.tmp[1]);
-            nabla.div(v.tmp[0], v.tmp[1], 0, result);           
+            nabla.div(v.tmp2[0], v.tmp2[1], result);           
         }
     },
-    
     {"elec_S_vorticity_term", "Electric source vorticity", false, //DEFINITE
-        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {
+        []( DVec& result, Variables& v ) {
              dg::blas1::pointwiseDot(v.f.density_source(1), v.f.gradP(0)[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.density_source(1), v.f.gradP(0)[1], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);   
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);  
-             dg::tensor.multiply2d(grid.metric(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    
-             nabla.div(v.tmp[0], v.tmp[1], 0, result)            
+             dg::tensor.multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    
+             nabla.div(v.tmp[0], v.tmp[1], result);       
         }
     },
     
     {"dielec_S_vorticity_term", "Dielectric source vorticity", false, //NOT DEFINITE
-        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {
-             v.f.compute_gradSN( 0, v.tmp); //?????
-             dg::HVec v_result_R=v.tmp[0];
+        []( DVec& result, Variables& v ) {
+             v.f.compute_gradSN(0,  v.tmp); //?????
+             dg::HVec =v.tmp[0];
              dg::HVec v_result_Z=v.tmp[1];
-             dg::blas1::scal(v.f.binv(), v.tmp[0]);    
-             dg::blas1::scal(v.f.binv(), v.tmp[0]);
-             dg::blas1::scal(v.f.binv(), v.tmp[1]);    
-             dg::blas1::scal(v.f.binv(), v.tmp[1]);
-             dg::tensor.multiply2d(grid.metric(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant             
-             nabla.div(v.tmp[0], v.tmp[1], 0, result);            
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);    
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);    
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);
+             dg::tensor.multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant             
+             nabla.div(v.tmp[0], v.tmp[1], result);       
         }
     },
     
     {"current_perp_term", "Perp gradient current term", false, //DEFINITE
-        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {
-             nabla.v_cross_b (v.f.gradA()[0], v.f.gradA()[1], v.tmp[0], v.tmp[1]);
+        []( DVec& result, Variables& v ) {
+             nabla.b_cross_v (v.f.gradA()[0], v.f.gradA()[1], v.tmp[0], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);           
-             dg::HVec J_par, grad_perp_J_par_R, grad_perp_J_par_Z;
              dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), v.tmp[2]);
-             dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., v.tmp[2]);  
+             dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., v.tmp[2]);
+             dg::blas1::copy(v.tmp[2], v.tmp2[0]);
              nabla.Grad_perp_f(v.tmp[2], v.tmp[2], result);
              dg::blas1::pointwiseDot(v.tmp[0], v.tmp[2], v.tmp[0]);
              dg::blas1::pointwiseDot(v.tmp[1], result, result);
-             dg::blas1::axpby(1, v.tmp[0], 1, result);            
+             dg::blas1::axpby(1, v.tmp[0], 1, result); 
+             
+             dg::pointwiseDot(v.f.induction(), v.f.divCurvKappa(), v.tmp[2]); 
+             dg::blas1::copy(v.f.curv()[0], v.tmp[0]); 
+             dg::blas1::copy(v.f.curv()[1], v.tmp[1]); 
+             dg::blas1::axpby(1, v.f.curvKappa()[0], -1, v.tmp[0]);
+             dg::blas1::axpby(1, v.f.curvKappa()[1], -1, v.tmp[1]);
+             dg::blas1::pointwiseDot(v.tmp[0], v.f.gradA()[0], v.tmp[0]);
+             dg::blas1::pointwiseDot(v.tmp[1], v.f.gradA()[1], v.tmp[1]);
+             dg::blas1::axpbypgz(1, v.tmp[1], 1, v.tmp[0], 1, v.tmp[2]);  
+             dg::blas1::pointwiseDot(v.tmp2[0], v.tmp[2], v.tmp[2]);
+             dg::blas1::axpby(1, v.tmp[2], 1, result); 
+                    
         }
     },
     
     {"elec_extra_term", "Electric extra term", false, //DEFINITE
-        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) {             
-             nabla.v_cross_b(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
+        []( DVec& result, Variables& v) {             
+             nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);             
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);            
              dg::blas1::pointwiseDot(v.tmp[0], v.f.gradN(1)[0], v.tmp2[0]);
              dg::blas1::pointwiseDot(v.tmp[1], v.f.gradN(1)[1], v.tmp2[1]);
              dg::blas1::axpby(1, v.tmp2[0], 1, v.tmp2[1]);
-             nabla.div(v.tmp[0], v.tmp[1], 0, v.tmp[0]);
+             nabla.div(v.tmp[0], v.tmp[1], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.density(1), v.tmp[0], v.tmp[0]);
              dg::blas1::axpby(1, v.tmp2[1], 1, v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);    
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
              nabla.Grad_perp_f(v.tmp[0], v.tmp[1], v.tmp[2]);
-             nabla.div(v.tmp[1], v.tmp[2], 0, result);             
+             nabla.div(v.tmp[1], v.tmp[2], result);            
         }
     },
     
     {"par_extra_term", "Parallel extra term", false, //DEFINITE
-        []( DVec& result, Variables& v, RealGrid3d<double> grid, Geometry& geom ) { 
+        []( DVec& result, Variables& v) { 
              dg::blas1::pointwiseDot(v.f.velocity(1), v.f.gradN(1)[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.velocity(1), v.f.gradN(1)[1], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.density(1), v.f.gradU(1)[0], v.tmp2[0]);
              dg::blas1::pointwiseDot(v.f.density(1), v.f.gradU(1)[1], v.tmp2[1]);
              dg::blas1::axpby(1, v.tmp2[0], 1, v.tmp[0]);
              dg::blas1::axpby(1, v.tmp2[1], 1, v.tmp[1]);             
-             nabla.v_cross_b(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp2[0], v.tmp2[1]);
+             nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp2[0], v.tmp2[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[0], v.tmp2[0]); 
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]);   				
 			 dg::blas1::pointwiseDot(v.tmp[0], v.tmp2[0], v.tmp[0])
@@ -648,7 +683,7 @@ std::vector<Record> diagnostics2d_list = {
 			 dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);    
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
              nabla.Grad_perp_f(v.tmp[0], v.tmp[1], v.tmp[2]);
-             nabla.div(v.tmp[1], v.tmp[2], 0, result);            
+             nabla.div(v.tmp[1], v.tmp[2], result);           
         }
     },
     ///----------------------EXTRA RAUL ADDITION-------------------------///

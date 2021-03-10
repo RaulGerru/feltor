@@ -84,89 +84,76 @@ struct radial_cut
 };
 
 
-
-struct Nablas //This structure needs a 3D grid to activate the nablas and use them to calculate grad perp in different components and the divergence.
+template<class Geometry, class Matrix, class Container>                                                                                                                            
+struct Nablas 
 {
-	Nablas(aRealGeometry3d<double>& geom3d, TokamakMagneticField& mag): m_g(geom3d),m_mag(mag) {
+	using geometry_type = Geometry;
+    using matrix_type = Matrix;
+    using container_type = Container;
+    using value_type = get_value_type<Container>;
+    
+	Nablas(const Geometry& geom3d): m_g(geom3d) {
 		dg::blas2::transfer( dg::create::dx( m_g, dg::DIR, dg::centered), m_dR); //Derivative in R direction
 		dg::blas2::transfer( dg::create::dy( m_g, dg::DIR, dg::centered), m_dZ);
-		m_vol= dg::tensor::volume(m_g.metric());
+		m_vol=dg::tensor::volume(m_g.metric());
 		m_weights=dg::create::volume(m_g);
-		m_bHat=dg::geo::createBHat(m_mag);
+		m_tmp=m_tmp2=m_tmp3=m_tmp4=m_weights;
 		m_metric=m_g.metric();
-		dg::geo::Fieldaligned<dg::aProductGeometry3d, dg::IDMatrix, dg::DVec> m_dsFA( m_bHat, m_g, dg::NEU, dg::NEU, dg::geo::NoLimiter(), 1e-8, 10, 10);		
-			} //volume tensor
-
-				
-	void Grad_f(const HVec& f, HVec& grad_R, HVec& grad_Z, HVec& grad_P){ //f the input scalar and c the vector field output
-	dg::HVec f_R, f_Z, f_P; //CAN I USE grad_R variables and avoid this definitions??
-	dg::blas2::symv( m_dR, f, f_R);
-	dg::blas2::symv( m_dZ, f, f_Z);
-	dg::geo::ds_centered( f, f_P);
-	dg::tensor::multiply3d(m_metric, f_R, f_Z, f_P, grad_R, grad_Z, grad_P) //OUTPUT: CONTRAVARIANT
-	}
+		
+		auto bhat = dg::geo::createBHat( mag);
+		bhat = dg::geo::createEPhi(+1);
+		if( p.curvmode == "true")
+        bhat = dg::geo::createBHat(mag);
+		else if( m_reversed_field)
+        bhat = dg::geo::createEPhi(-1);
+		m_hh = dg::geo::createProjectionTensor( bhat, g);
+		} 
 	
-	void Grad_perp_f(const HVec& f, HVec& grad_R, HVec& grad_Z){ //f the input scalar and c the vector field output
-	dg::HVec f_R, f_Z, f_P; //CAN I USE grad_R variables and avoid this definitions??
-	dg::blas2::symv( m_dR, f, f_R);
-	dg::blas2::symv( m_dZ, f, f_Z); //OUTPUT: COVARIANT
-	//dg::tensor::multiply2d(m_metric, f_R, f_Z, grad_R, grad_Z) //IF ACTIVE OUTPUT: CONTRAVARIANT
+	template<class Container>
+	void Grad_perp_f(const Container& f, Container& grad_R, Container& grad_Z) { //f the input scalar and c the vector field output
+	dg::blas2::symv( m_dR, f, grad_R);
+	dg::blas2::symv( m_dZ, f, grad_Z); //OUTPUT: COVARIANT
+	//dg::tensor::multiply2d(m_metric, grad_R, grad_Z, grad_R, grad_Z) //IF ACTIVE OUTPUT: CONTRAVARIANT
 	}		
 	
-			
-	void div (HVec& v_R, HVec& v_Z, HVec& v_P, HVec& F){ //INPUT: CONTRAVARIANT
-		//NEED TO ADD THE DIV B COMPONENT
-	dg::HVec c_R,c_Z,c_P;
-	c_R=v_R;
-	c_Z=v_Z;
-	c_P=v_P;
-	const dg::HVec ones = dg::evaluate( dg::one, m_g);	
-	dg::blas1::pointwiseDivide(v_R, m_vol, v_R);
-	dg::blas1::pointwiseDivide(v_Z, m_vol, v_Z);
-	dg::blas1::pointwiseDivide(v_P, m_vol, v_P);
-	dg::blas2::symv( m_dR, v_R, c_R);
-	dg::blas2::symv( m_dZ, v_Z, c_Z);
-	dg::geo::ds_centered( v_P, c_P);
-	dg::blas1::axpbypgz(1,c_R,1,c_Z,1,c_P);
-	dg::blas1::pointwiseDot(m_vol,c_P,F);	
+	template<class Container, class Container2 >		
+	void div (Container& v_R, Container& v_Z, Container& F){ //INPUT: CONTRAVARIANT
+	dg::blas1::pointwiseDivide(v_R, m_vol, m_tmp);
+	dg::blas1::pointwiseDivide(v_Z, m_vol, m_tmp2); 
+	dg::blas2::symv( m_dR, m_tmp, m_tmp3); 
+	dg::blas2::symv( m_dZ, m_tmp2, m_tmp4);
+	dg::blas1::axpby(1, m_tmp3, 1, m_tmp4);
+	dg::blas1::pointwiseDot(m_vol, m_tmp4,F);	
 	
 }
 
-	void v_dot_nabla (HVec& v_R, HVec& v_Z, HVec& v_P, HVec& f, HVec& F){ //INPUT: COVARIANT
-	dg::HVec f_R,f_Z,f_P;
-	f_R=f; //neccesary??
-	f_Z=f;
-	f_P=f;
-	dg::blas2::symv( m_dR, f, f_R);
-	dg::blas2::symv( m_dZ, f, f_Z);
-	dg::geo::ds_centered( f, f_P);
-	dg::tensor::multiply3d(m_metric, f_R, f_Z, f_P, f_R, f_Z, f_P) //WE MAKE THE GRADIENT CONTRAVARIANT
-	dg::blas1::pointwiseDot(v_R, f_R, f_R);
-	dg::blas1::pointwiseDot(v_Z, f_Z, f_Z);
-	dg::blas1::pointwiseDot(v_P, f_P, F);
-	dg::blas1::axpbypgz(1, f_R, 1, f_Z, 1, F);
+	template<class Container>
+	void v_dot_nabla (Container& v_R, Container& v_Z, Container& f, Container& F){ //INPUT: COVARIANT
+	dg::blas2::symv( m_dR, f, m_tmp);
+	dg::blas2::symv( m_dZ, f, m_tmp2);
+	dg::tensor::multiply2d(m_hh, m_tmp, m_tmp2, m_tmp3, m_tmp4) //WE MAKE THE GRADIENT CONTRAVARIANT
+	dg::blas1::pointwiseDot(v_R, m_tmp3, m_tmp);
+	dg::blas1::pointwiseDot(v_Z, m_tmp4, F);
+	dg::blas1::axpby(1, m_tmp, 1, F);
 	}	
 	
-	void v_cross_b (HVec& v_R_o, HVec& v_Z_o, HVec& v_R_f, HVec& v_Z_f){ //INPUT: COVARIANT
-	dg::tensor::multiply2d(m_metric, v_R_o, v_Z_o, v_R_o, v_Z_o); //to transform the vector from covariant to contravariant
-    v_R_f=v_Z_o;
-    v_Z_f=-v_R_o;
-    dg::blas1::pointwiseDot(m_vol,v_R_f);       
-	dg::blas1::pointwiseDot(m_vol,v_Z_f); //OUTPUT: CONTRAVARIANT
+	void b_cross_v (Container& v_R_o, Container& v_Z_o, Container& v_R_f, Container& v_Z_f){ //INPUT: COVARIANT
+	dg::tensor::multiply2d(m_hh, v_R_o, v_Z_o, m_tmp, m_tmp2); //to transform the vector from covariant to contravariant
+    dg::blas1::scal(-1, m_tmp2);
+    dg::blas1::pointwiseDot(m_vol, m_tmp2, v_R_f);       
+	dg::blas1::pointwiseDot(m_vol, m_tmp, v_Z_f); //OUTPUT: CONTRAVARIANT
 	}
 
 	private:
-	aRealGeometry3d<double>& m_g;
-	TokamakMagneticField& m_mag;
-	HMatrix m_dR;
-	HMatrix m_dZ;
-	HMatrix m_dP;
-	HVec m_vol;
-	HVec m_weights;
-	SparseTensor<HVec> m_metric;
-	CylindricalVectorLvl0 m_bHat;
-	Fieldaligned<aProductGeometry3d, IDMatrix, DVec> m_dsFA;
-	
+	Geometry m_g;
+	dg::geo::TokamakMagneticField m_mag;
+    dg::SparseTensor<Container > m_metric, m_hh;
+	Matrix m_dR;
+	Matrix m_dZ;
+	Matrix m_dP;
+	Container m_vol;
+	Container m_weights;
+    Container m_tmp, m_tmp2, m_tmp3, m_tmp4; 
 };
 };//namespace geo
 }//namespace dg
