@@ -3,6 +3,10 @@
 #include "dg/backend/memory.h"
 #include "dg/topology/geometry.h"
 
+#include "../src/feltor/feltor.h"
+#include "../src/feltor/parameters.h"
+//#include "feltor/init.h"
+
 namespace dg
 {
 namespace geo
@@ -93,31 +97,44 @@ struct Nablas
     using value_type = get_value_type<Container>;
     
 	Nablas(const Geometry& geom3d): m_g(geom3d) {
-		dg::blas2::transfer( dg::create::dx( m_g, dg::DIR, dg::centered), m_dR); //Derivative in R direction
+		dg::blas2::transfer( dg::create::dx( m_g, dg::DIR, dg::centered), m_dR); 
 		dg::blas2::transfer( dg::create::dy( m_g, dg::DIR, dg::centered), m_dZ);
 		m_vol=dg::tensor::volume(m_g.metric());
 		m_weights=dg::create::volume(m_g);
 		m_tmp=m_tmp2=m_tmp3=m_tmp4=m_weights;
-		m_metric=m_g.metric();
-		
-		auto bhat = dg::geo::createBHat( mag);
-		bhat = dg::geo::createEPhi(+1);
-		if( p.curvmode == "true")
-        bhat = dg::geo::createBHat(mag);
-		else if( m_reversed_field)
-        bhat = dg::geo::createEPhi(-1);
-		m_hh = dg::geo::createProjectionTensor( bhat, g);
+		m_hh=m_g.metric(); //How good is this??
 		} 
 	
-	template<class Container>
-	void Grad_perp_f(const Container& f, Container& grad_R, Container& grad_Z) { //f the input scalar and c the vector field output
+	Nablas(const Geometry& geom3d, dg::geo::TokamakMagneticField& mag, feltor::Parameters p): m_g(geom3d), m_mag(mag), m_p(p) { //, dg::geo::TokamakMagneticField& mag  , m_mag(mag)
+		dg::blas2::transfer( dg::create::dx( m_g, dg::DIR, dg::centered), m_dR); 
+		dg::blas2::transfer( dg::create::dy( m_g, dg::DIR, dg::centered), m_dZ);
+		m_vol=dg::tensor::volume(m_g.metric());
+		m_weights=dg::create::volume(m_g);
+		m_tmp=m_tmp2=m_tmp3=m_tmp4=m_weights;
+		m_hh=m_g.metric();
+		
+		auto bhat = dg::geo::createBHat( m_mag);
+		bhat = dg::geo::createEPhi(+1);
+		m_reversed_field = false;
+		if( m_mag.ipol()( m_g.x0(), m_g.y0()) < 0)
+        m_reversed_field = true;
+		if( p.curvmode == "true")
+        bhat = dg::geo::createBHat(m_mag);
+		else if( m_reversed_field)
+        bhat = dg::geo::createEPhi(-1);
+		m_hh = dg::geo::createProjectionTensor( bhat, m_g);
+		
+		} 
+	
+	template<class Container1>
+	void Grad_perp_f(const Container1& f, Container1& grad_R, Container1& grad_Z) { 
 	dg::blas2::symv( m_dR, f, grad_R);
 	dg::blas2::symv( m_dZ, f, grad_Z); //OUTPUT: COVARIANT
 	//dg::tensor::multiply2d(m_metric, grad_R, grad_Z, grad_R, grad_Z) //IF ACTIVE OUTPUT: CONTRAVARIANT
 	}		
 	
-	template<class Container, class Container2 >		
-	void div (Container& v_R, Container& v_Z, Container& F){ //INPUT: CONTRAVARIANT
+	template<class Container1>		
+	void div (Container1& v_R, Container1& v_Z, Container1& F){ //INPUT: CONTRAVARIANT
 	dg::blas1::pointwiseDivide(v_R, m_vol, m_tmp);
 	dg::blas1::pointwiseDivide(v_Z, m_vol, m_tmp2); 
 	dg::blas2::symv( m_dR, m_tmp, m_tmp3); 
@@ -127,17 +144,18 @@ struct Nablas
 	
 }
 
-	template<class Container>
-	void v_dot_nabla (Container& v_R, Container& v_Z, Container& f, Container& F){ //INPUT: COVARIANT
+	template<class Container1>
+	void v_dot_nabla_f (Container1& v_R, Container1& v_Z, Container1& f, Container1& F){ //INPUT: COVARIANT
 	dg::blas2::symv( m_dR, f, m_tmp);
 	dg::blas2::symv( m_dZ, f, m_tmp2);
-	dg::tensor::multiply2d(m_hh, m_tmp, m_tmp2, m_tmp3, m_tmp4) //WE MAKE THE GRADIENT CONTRAVARIANT
+	dg::tensor::multiply2d(m_hh, m_tmp, m_tmp2, m_tmp3, m_tmp4); //WE MAKE THE GRADIENT CONTRAVARIANT
 	dg::blas1::pointwiseDot(v_R, m_tmp3, m_tmp);
 	dg::blas1::pointwiseDot(v_Z, m_tmp4, F);
 	dg::blas1::axpby(1, m_tmp, 1, F);
 	}	
 	
-	void b_cross_v (Container& v_R_o, Container& v_Z_o, Container& v_R_f, Container& v_Z_f){ //INPUT: COVARIANT
+	template<class Container1>
+	void b_cross_v (Container1& v_R_o, Container1& v_Z_o, Container1& v_R_f, Container1& v_Z_f){ //INPUT: COVARIANT
 	dg::tensor::multiply2d(m_hh, v_R_o, v_Z_o, m_tmp, m_tmp2); //to transform the vector from covariant to contravariant
     dg::blas1::scal(-1, m_tmp2);
     dg::blas1::pointwiseDot(m_vol, m_tmp2, v_R_f);       
@@ -148,6 +166,8 @@ struct Nablas
 	Geometry m_g;
 	dg::geo::TokamakMagneticField m_mag;
     dg::SparseTensor<Container > m_metric, m_hh;
+    feltor::Parameters m_p;
+    bool m_reversed_field;
 	Matrix m_dR;
 	Matrix m_dZ;
 	Matrix m_dP;

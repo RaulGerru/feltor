@@ -450,23 +450,25 @@ std::vector<Record> diagnostics2d_list = {
     },
     ///-----------------------RAUL VORTICITY ADDITIONS-------------------///
  //v.f.projection()
-    {"elec_vorticity", "Electric vorticity", false, //MISSING M_I: DEFINITE 
-        []( DVec& result, Variables& v) { //DON'T NEEDS THE GRIDS INPUTS our geoms
+    {"elec_vorticity", "Electric vorticity (as time derivative)", false, //FINAL
+        []( DVec& result, Variables& v) {
 			 dg::blas1::copy(v.f.gradP(0)[0], v.tmp[0]);
              dg::blas1::copy(v.f.gradP(0)[1], v.tmp[1]);
-             dg::blas1::pointwiseDot(-1, v.f.density(1), v.tmp[0], 1, v.tmp[0]); //WORKS LIKE this
-             dg::blas1::pointwiseDot(-1, v.f.density(1), v.tmp[1], 1, v.tmp[1]);
+             dg::blas1::pointwiseDot( v.f.density(1), v.tmp[0]); 
+             dg::blas1::pointwiseDot( v.f.density(1), v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);    
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);  
              dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    //CHANGE THE METRICS TO projection
              v.nabla.div(v.tmp[0], v.tmp[1], result); 
+             dg::blas1::scal(result, -1);
         }
     },
     
-    {"dielec_vorticity", "Dielectric vorticity", false, //MISSING Q, T AND M_I: DEFINITE
-        []( DVec& result, Variables& v) {          
+    {"dielec_vorticity", "Dielectric vorticity (as time derivative)", false, //FINAL
+        []( DVec& result, Variables& v) { 
+			 integral=true;         
 			 dg::blas1::copy(v.f.gradN(1)[0], v.tmp[0]);
              dg::blas1::copy(v.f.gradN(1)[1], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
@@ -475,13 +477,15 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);  
              dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    
              v.nabla.div(v.tmp[0], v.tmp[1], result);
+             dg::blas1::scal(result, -1);
+             dg::blas1::scal(result, v.p.tau[1]);
         }
     },
     
-     {"elec_ tensor term", "electric tensor term", false, // DEFINITE
-        []( DVec& result, Variables& v ) {            
+     {"elec_ tensor term_tt", "electric tensor term (time integrated)", true, //FINAL
+        []( DVec& result, Variables& v) {            
              nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); //u_E
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); //tmp[]=u_E
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
              
              dg::blas1::pointwiseDot(v.f.density(1), v.f.gradP(0)[0], v.tmp2[0]); //N nabla_phi
@@ -489,11 +493,11 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[0], v.tmp2[0]); 
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[0], v.tmp2[0]); 
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]);//tmp2[]=N grad phi/B^2 
              v.nabla.div(v.tmp2[0], v.tmp2[1], v.tmp[3]);
-             nabla.v_dot_nabla(v.tmp2[0], v.tmp2[1], v.tmp[0], v.tmp3[0]); 
-             nabla.v_dot_nabla(v.tmp2[0], v.tmp2[1], v.tmp[1], v.tmp3[1]); 
-             dg::blas1::pointwiseDot(v.tmp[3], v.tmp2[0], v.tmp2[0]);
+             nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[0], v.tmp3[0]); 
+             nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[1], v.tmp3[1]); 
+             dg::blas1::pointwiseDot(v.tmp[3], v.tmp2[0], v.tmp2[0]);//div(N grad(phi)/B^2)*u_E
              dg::blas1::pointwiseDot(v.tmp[3], v.tmp2[1], v.tmp2[1]);          
              dg::blas1::axpby(1,v.tmp2[0], 1, v.tmp3[0]);
              dg::blas1::axpby(1,v.tmp2[1], 1, v.tmp3[1]);
@@ -501,7 +505,7 @@ std::vector<Record> diagnostics2d_list = {
         }
     },
     
-         {"dielec_ tensor term", "Dielectric tensor term", false, //DEFINITE
+         {"dielec_ tensor term_tt", "Dielectric tensor term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) {            
              nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); //u_E
@@ -525,18 +529,18 @@ std::vector<Record> diagnostics2d_list = {
         }
     },
     
-    {"par_current_term", "Parallel current term", false, //DEFINITE
+    {"par_current_term_tt", "Parallel current term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) { 
              dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), v.tmp[0]);
              dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., v.tmp[0]);  
              dg::geo::ds_centered( v.tmp[0], v.tmp[1]);
              dg::pointwiseDot(v.tmp[0], dg::geo::GradLnB(geom), v.tmp[0]);
-             dg::blas1::axbpy(1, v.tmp[0], -1, v.tmp[1], 1, result)         
+             dg::blas1::axpbypgz(1, v.tmp[0], -1, v.tmp[1], 1, result)         
         }
     },
     
-    {"mag_term", "Magnetization term", false, //DEFINITE
-        []( DVec& result, Variables& v ) {
+    {"mag_term_tt", "Magnetization term (time integrated)", true, //FINAL
+        []( DVec& result, Variables& v) {
              dg::blas1::copy(dg::evaluate(dg:ones, m_g), v.tmp[0]);
              dg::blas1::scal(v.tmp[0], 0.5);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
@@ -566,19 +570,21 @@ std::vector<Record> diagnostics2d_list = {
         }
     },
     
-    {"curv_term", "curvature term", false, //DEFINITE
-        []( DVec& result, Variables& v ) {           
-            dg::blas1::copy(v.f.density(1), v.tmp[0]); 
-            dg::blas1::axpby(v.p.tau[0], v.f.density(0), v.p.tau[1], v.tmp[0]);
+    {"curv_term_tt", "curvature term (time integrated)", true, //FINAL
+        []( DVec& result, Variables& v) {           
+            dg::blas1::copy(v.f.density(0), v.tmp[0]); 
+            dg::blas1::scal(v.tmp[0],-1);
+            dg::blas1::axpby(v.p.tau[1], v.f.density(1), v.p.tau[0], v.tmp[0]);
             dg::blas1::pointwiseDot(v.tmp[0], v.f.curv()[1], v.tmp[1]);  
             dg::blas1::pointwiseDot(v.tmp[0], v.f.curv()[0], v.tmp[0]);
-             nabla.div(v.tmp[0], v.tmp[1], result);  
+            nabla.div(v.tmp[0], v.tmp[1], result);  
         }
     },
     
-     {"curvKappa_term", "curvature Kappa term", false, //DEFINITE
-        []( DVec& result, Variables& v ) {                       
+     {"curvKappa_term_tt", "curvature Kappa term (time integrated)", true, //FINAL
+        []( DVec& result, Variables& v) {                       
             dg::blas1::copy(v.f.density(0), v.tmp2[0]); 
+            dg::blas1::scal(v.tmp2[0], -1); 
             dg::blas1::copy(v.f.density(1), v.tmp2[1]);  
             dg::blas1::pointwiseDot(v.f.velocity(0), v.tmp2[0], v.tmp2[0]);
             dg::blas1::pointwiseDot(v.f.velocity(0), v.tmp2[0], v.tmp2[0]);
@@ -590,8 +596,8 @@ std::vector<Record> diagnostics2d_list = {
             nabla.div(v.tmp2[0], v.tmp2[1], result);           
         }
     },
-    {"elec_S_vorticity_term", "Electric source vorticity", false, //DEFINITE
-        []( DVec& result, Variables& v ) {
+    {"elec_S_vorticity_term_tt", "Electric source vorticity (time integrated)", true, //FINAL
+        []( DVec& result, Variables& v) {
              dg::blas1::pointwiseDot(v.f.density_source(1), v.f.gradP(0)[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.density_source(1), v.f.gradP(0)[1], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
@@ -603,32 +609,32 @@ std::vector<Record> diagnostics2d_list = {
         }
     },
     
-    {"dielec_S_vorticity_term", "Dielectric source vorticity", false, //NOT DEFINITE
-        []( DVec& result, Variables& v ) {
-             v.f.compute_gradSN(0,  v.tmp); //?????
-             dg::HVec =v.tmp[0];
-             dg::HVec v_result_Z=v.tmp[1];
+    {"dielec_S_vorticity_term_tt", "Dielectric source vorticity (time integrated)", true, //FINAL
+        []( DVec& result, Variables& v) {
+             v.f.compute_gradSN(0,  v.tmp); 
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);    
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);    
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);
              dg::tensor.multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant             
-             nabla.div(v.tmp[0], v.tmp[1], result);       
+             nabla.div(v.tmp[0], v.tmp[1], result);
+             dg::blas1::scal(result, v.p.tau[1]);      
         }
     },
     
-    {"current_perp_term", "Perp gradient current term", false, //DEFINITE
-        []( DVec& result, Variables& v ) {
+    {"current_perp_term_tt", "Perp gradient current term (time integrated)", true, //FINAL
+        []( DVec& result, Variables& v) {
              nabla.b_cross_v (v.f.gradA()[0], v.f.gradA()[1], v.tmp[0], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);           
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);//b_perp
+                        
              dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), v.tmp[2]);
              dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., v.tmp[2]);
-             dg::blas1::copy(v.tmp[2], v.tmp2[0]);
+             dg::blas1::copy(v.tmp[2], v.tmp2[0]); //v.tmp2[0]=J_||
              nabla.Grad_perp_f(v.tmp[2], v.tmp[2], result);
              dg::blas1::pointwiseDot(v.tmp[0], v.tmp[2], v.tmp[0]);
              dg::blas1::pointwiseDot(v.tmp[1], result, result);
-             dg::blas1::axpby(1, v.tmp[0], 1, result); 
+             dg::blas1::axpby(1, v.tmp[0], 1, result); //grad J_||*b_perp
              
              dg::pointwiseDot(v.f.induction(), v.f.divCurvKappa(), v.tmp[2]); 
              dg::blas1::copy(v.f.curv()[0], v.tmp[0]); 
@@ -644,7 +650,7 @@ std::vector<Record> diagnostics2d_list = {
         }
     },
     
-    {"elec_extra_term", "Electric extra term", false, //DEFINITE
+    {"elec_extra_term_tt", "Electric extra term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) {             
              nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
@@ -652,38 +658,41 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);            
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]); //u_e/B^2
+                        
              dg::blas1::pointwiseDot(v.tmp[0], v.f.gradN(1)[0], v.tmp2[0]);
              dg::blas1::pointwiseDot(v.tmp[1], v.f.gradN(1)[1], v.tmp2[1]);
              dg::blas1::axpby(1, v.tmp2[0], 1, v.tmp2[1]);
              nabla.div(v.tmp[0], v.tmp[1], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.density(1), v.tmp[0], v.tmp[0]);
              dg::blas1::axpby(1, v.tmp2[1], 1, v.tmp[0]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);    
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
              nabla.Grad_perp_f(v.tmp[0], v.tmp[1], v.tmp[2]);
-             nabla.div(v.tmp[1], v.tmp[2], result);            
+             nabla.div(v.tmp[1], v.tmp[2], result);  
+             dg::blas1::scal(result, v.p.tau[1]);          
         }
     },
     
-    {"par_extra_term", "Parallel extra term", false, //DEFINITE
+    {"par_extra_term_tt", "Parallel extra term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) { 
              dg::blas1::pointwiseDot(v.f.velocity(1), v.f.gradN(1)[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.velocity(1), v.f.gradN(1)[1], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.density(1), v.f.gradU(1)[0], v.tmp2[0]);
              dg::blas1::pointwiseDot(v.f.density(1), v.f.gradU(1)[1], v.tmp2[1]);
              dg::blas1::axpby(1, v.tmp2[0], 1, v.tmp[0]);
-             dg::blas1::axpby(1, v.tmp2[1], 1, v.tmp[1]);             
+             dg::blas1::axpby(1, v.tmp2[1], 1, v.tmp[1]); //U grad N+N grad U
+                         
              nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp2[0], v.tmp2[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[0], v.tmp2[0]); 
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]);   				
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]); //b_perp
+                				
 			 dg::blas1::pointwiseDot(v.tmp[0], v.tmp2[0], v.tmp[0])
 			 dg::blas1::pointwiseDot(v.tmp[1], v.tmp2[1], v.tmp[1])
 			 dg::blas1::axpby(1, v.tmp[1], 1, v.tmp[0]);
 			 dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);    
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
              nabla.Grad_perp_f(v.tmp[0], v.tmp[1], v.tmp[2]);
-             nabla.div(v.tmp[1], v.tmp[2], result);           
+             nabla.div(v.tmp[1], v.tmp[2], result); 
+             dg::blas1::scal(result, v.p.tau[1]);         
         }
     },
     ///----------------------EXTRA RAUL ADDITION-------------------------///
