@@ -29,7 +29,7 @@ using Geometry = dg::x::CylindricalGrid3d;
 
 #include "init.h"
 #include "init_from_file.h"
-#include "feltordiag.h"
+#include "feltordiagRaul.h"
 
 #ifdef FELTOR_MPI
 //ATTENTION: in slurm should be used with --signal=SIGINT@30 (<signal>@<time in seconds>)
