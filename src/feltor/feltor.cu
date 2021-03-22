@@ -19,7 +19,7 @@ using Geometry = dg::x::CylindricalGrid3d;
 #define MPI_OUT
 
 #include "init.h"
-#include "feltordiag.h"
+#include "feltordiagRaul.h"
 
 int main( int argc, char* argv[])
 {
@@ -94,19 +94,20 @@ int main( int argc, char* argv[])
     //create RHS
     std::cout << "Constructing Explicit...\n";
     feltor::Explicit<Geometry, IDMatrix, DMatrix, DVec> feltor( grid, p, mag);
+    dg::geo::Nablas<class Geometry, class Matrix, class Container> nabla(grid, p, mag);
     //std::cout << "Constructing Implicit...\n";
     //feltor::Implicit<Geometry, IDMatrix, DMatrix, DVec> implicit( grid, p, mag);
     std::cout << "Done!\n";
 
     DVec result = dg::evaluate( dg::zero, grid);
     /// Construct feltor::Variables object for diagnostics
-    std::array<DVec, 3> gradPsip;
+    std::array<DVec, 3> gradPsip, tmp, tmp2, tmp3;
     gradPsip[0] =  dg::evaluate( mag.psipR(), grid);
     gradPsip[1] =  dg::evaluate( mag.psipZ(), grid);
     gradPsip[2] =  result; //zero
     DVec hoo = dg::pullback( dg::geo::Hoo( mag), grid);
     feltor::Variables var = {
-        feltor, p,mag, gradPsip, gradPsip, hoo
+        feltor, p, mag, nabla, gradPsip, tmp, tmp2, tmp3, hoo
     };
     /////////////////////The initial field///////////////////////////////////////////
     double time = 0.;

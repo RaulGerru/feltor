@@ -69,6 +69,17 @@ struct Grid_cutter : public aCylindricalFunctor<Grid_cutter>
 
 struct radial_cut
 {
+		/**
+    * @brief Takes the radial cut of a quantitity in 2D, so it shows the poloidal distribution of a quantity at a certain flux surface
+    *
+    * 
+    * @brief <tt> radial_cut(RealCurvilinearGridX2d<double>) </tt>
+    * @tparam HVec
+    * @param F (function to obtain the poloidal distribution)
+    * @tparam double
+    * @param zeta_def (flux surface where the poloidal distribution wants to be seen)
+    * 
+    */
 	radial_cut(RealCurvilinearGridX2d<double> gridX2d): m_g(gridX2d){}
 	
 	HVec cut(const HVec F, const double zeta_def){ //This functions takes a 2D object in the Xgrid plane at a define radial position and saves it in a 1D variable with eta dependence.
@@ -86,7 +97,10 @@ struct radial_cut
 	HVec m_conv_LCFS_F;
 	
 };
-
+/**
+ * @brief Certain functions related with using Nabla (in divergences, perpendicular gradients, vector dot nabla...)
+ * @ingroup misc_geo
+ */
 
 template<class Geometry, class Matrix, class Container>                                                                                                                            
 struct Nablas 
@@ -95,17 +109,17 @@ struct Nablas
     using matrix_type = Matrix;
     using container_type = Container;
     using value_type = get_value_type<Container>;
-    
-	Nablas(const Geometry& geom3d): m_g(geom3d) {
-		dg::blas2::transfer( dg::create::dx( m_g, dg::DIR, dg::centered), m_dR); 
-		dg::blas2::transfer( dg::create::dy( m_g, dg::DIR, dg::centered), m_dZ);
-		m_vol=dg::tensor::volume(m_g.metric());
-		m_weights=dg::create::volume(m_g);
-		m_tmp=m_tmp2=m_tmp3=m_tmp4=m_weights;
-		m_hh=m_g.metric(); //How good is this??
-		} 
+		
+	/**
+     * @brief Alternative contructor: construct from a 3D geometry and also with a Magnetic field and the input parameters in case there is reversed field
+     * @tparam Geometry
+     * @param geom3d
+     * @tparam g::geo::TokamakMagneticField
+     * @param mag
+     * @param feltor::Parameters p
+     */
 	
-	Nablas(const Geometry& geom3d, dg::geo::TokamakMagneticField& mag, feltor::Parameters p): m_g(geom3d), m_mag(mag), m_p(p) { //, dg::geo::TokamakMagneticField& mag  , m_mag(mag)
+	Nablas(const Geometry& geom3d, feltor::Parameters p, dg::geo::TokamakMagneticField& mag): m_g(geom3d), m_p(p), m_mag(mag) { 
 		dg::blas2::transfer( dg::create::dx( m_g, dg::DIR, dg::centered), m_dR); 
 		dg::blas2::transfer( dg::create::dy( m_g, dg::DIR, dg::centered), m_dZ);
 		m_vol=dg::tensor::volume(m_g.metric());
@@ -125,13 +139,28 @@ struct Nablas
 		m_hh = dg::geo::createProjectionTensor( bhat, m_g);
 		
 		} 
-	
+	/**
+     * @brief Perpendicular gradient of function f (output contravariant)
+     *
+     * @param f the container containing the scalar
+     * @param grad_R container containing the R component of the perpendicular gradient
+     * @param grad_Z container containing the Z component of the perpendicular gradient
+     */
+     
 	template<class Container1>
 	void Grad_perp_f(const Container1& f, Container1& grad_R, Container1& grad_Z) { 
 	dg::blas2::symv( m_dR, f, grad_R);
 	dg::blas2::symv( m_dZ, f, grad_Z); //OUTPUT: COVARIANT
 	//dg::tensor::multiply2d(m_metric, grad_R, grad_Z, grad_R, grad_Z) //IF ACTIVE OUTPUT: CONTRAVARIANT
 	}		
+	
+	/**
+     * @brief Divergence of a perpendicular vector field (input contravariant)
+     *
+     * @param v_R container containing the R component of the perpendicular gradient
+     * @param v_Z container containing the Z component of the perpendicular gradient
+     * @param F the container containing the divergence result
+     */
 	
 	template<class Container1>		
 	void div (Container1& v_R, Container1& v_Z, Container1& F){ //INPUT: CONTRAVARIANT
@@ -144,6 +173,15 @@ struct Nablas
 	
 }
 
+	/**
+     * @brief Vector dot nabla f: gradient in a vector direction (covariant) of a scalar (usually the scalar being different components of a vector)
+     *
+     * @param v_R container containing the R component of the vector of the direction
+     * @param v_Z container containing the Z component of the vector of the direction
+     * @param f the scalar over which the derivatives are done
+     * @param F the scalar output
+     */
+
 	template<class Container1>
 	void v_dot_nabla_f (Container1& v_R, Container1& v_Z, Container1& f, Container1& F){ //INPUT: COVARIANT
 	dg::blas2::symv( m_dR, f, m_tmp);
@@ -153,6 +191,15 @@ struct Nablas
 	dg::blas1::pointwiseDot(v_Z, m_tmp4, F);
 	dg::blas1::axpby(1, m_tmp, 1, F);
 	}	
+	
+	/**
+     * @brief b cross v: vectorial product of vector field unitary vector and vector v (covariant) with the toroidal magnetic field approximation
+     * 
+     * @param v_R_o container containing the R component of the input vector
+     * @param v_Z_o container containing the Z component of the input vector
+     * @param v_R_f container containing the R component of the output vector (contravariant)
+     * @param v_Z_f container containing the Z component of the output vector (contravariant)
+     */
 	
 	template<class Container1>
 	void b_cross_v (Container1& v_R_o, Container1& v_Z_o, Container1& v_R_f, Container1& v_Z_f){ //INPUT: COVARIANT

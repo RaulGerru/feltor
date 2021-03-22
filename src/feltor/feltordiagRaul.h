@@ -449,7 +449,7 @@ std::vector<Record> diagnostics2d_list = {
         }
     },
     ///-----------------------RAUL VORTICITY ADDITIONS-------------------///
- //v.f.projection()
+
     {"elec_vorticity", "Electric vorticity (as time derivative)", false, //FINAL
         []( DVec& result, Variables& v) {
 			 dg::blas1::copy(v.f.gradP(0)[0], v.tmp[0]);
@@ -518,8 +518,8 @@ std::vector<Record> diagnostics2d_list = {
              
              v.nabla.div(v.tmp2[0],v.tmp2[1], v.tmp[2]);
              
-             nabla.v_dot_nabla(v.tmp2[0], v.tmp2[1], v.tmp[0], v.tmp2[2]); 
-             nabla.v_dot_nabla(v.tmp2[0], v.tmp2[1], v.tmp[1], v.tmp2[1]); 
+             nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[0], v.tmp2[2]); 
+             nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[1], v.tmp2[1]); 
              
              dg::blas1::pointwiseDot(v.tmp[2], v.tmp[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.tmp[2], v.tmp[1], v.tmp[1]);          
