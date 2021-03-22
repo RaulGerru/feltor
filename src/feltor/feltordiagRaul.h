@@ -467,8 +467,7 @@ std::vector<Record> diagnostics2d_list = {
     },
     
     {"dielec_vorticity", "Dielectric vorticity (as time derivative)", false, //FINAL
-        []( DVec& result, Variables& v) { 
-			 integral=true;         
+        []( DVec& result, Variables& v) {         
 			 dg::blas1::copy(v.f.gradN(1)[0], v.tmp[0]);
              dg::blas1::copy(v.f.gradN(1)[1], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
@@ -534,13 +533,13 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), v.tmp[0]);
              dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., v.tmp[0]);  
              dg::geo::ds_centered( v.tmp[0], v.tmp[1]);
-             dg::blas1::pointwiseDot(v.tmp[0], dg::geo::GradLnB(v.mag), v.tmp[0]);
+             dg::blas1::pointwiseDot(dg::geo::GradLnB(v.mag), v.tmp[0], v.tmp[0]);
              dg::blas1::axpbypgz(1, v.tmp[0], -1, v.tmp[1], 1, result);         
         }
     },
     
     {"mag_term_tt", "Magnetization term (time integrated)", true, //FINAL
-        []( DVec& result, Variables& v) {
+        []( DVec& result, Variables& v, Geometry& grid) {
              dg::blas1::copy(dg::evaluate(dg:ones, grid), v.tmp[0]);
              dg::blas1::scal(v.tmp[0], 0.5);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
@@ -704,7 +703,7 @@ std::vector<Record> diagnostics2d_list = {
 			dg::blas1::copy(dg::evaluate(dg::InvSqrt, v.tmp[1]), v.tmp[0]);
 			dg::blas1::pointwiseDot(v.gradPsip, v.tmp[0], result);
 			//dg::blas1::scal( v.gradPsip, 1/sqrt(v.gradPsip[0]*v.gradPsip[0]+v.gradPsip[1]*v.gradPsip[1]), result);
-            routines::dot( v.f.gradP(0), result, result);
+            dg::blas1::pointwiseDot( v.f.gradP(0), result, result);
         }
     },  
      {"par_J", "Parallel current", false,
