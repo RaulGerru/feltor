@@ -193,7 +193,7 @@ struct Variables{
     feltor::Explicit<Geometry, IDMatrix, DMatrix, DVec>& f;
     feltor::Parameters p;
     dg::geo::TokamakMagneticField mag;
-    dg::geo::Nablas nabla;
+    dg::geo::Nablas nabla<Geometry, DVec, IDMatrix>&;
     std::array<DVec, 3> gradPsip;
     std::array<DVec, 3> tmp;
     std::array<DVec, 3> tmp2;
@@ -534,14 +534,14 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), v.tmp[0]);
              dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., v.tmp[0]);  
              dg::geo::ds_centered( v.tmp[0], v.tmp[1]);
-             dg::pointwiseDot(v.tmp[0], dg::geo::GradLnB(geom), v.tmp[0]);
-             dg::blas1::axpbypgz(1, v.tmp[0], -1, v.tmp[1], 1, result)         
+             dg::blas1::pointwiseDot(v.tmp[0], dg::geo::GradLnB(v.mag), v.tmp[0]);
+             dg::blas1::axpbypgz(1, v.tmp[0], -1, v.tmp[1], 1, result);         
         }
     },
     
     {"mag_term_tt", "Magnetization term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) {
-             dg::blas1::copy(dg::evaluate(dg:ones, m_g), v.tmp[0]);
+             dg::blas1::copy(dg::evaluate(dg:ones, grid), v.tmp[0]);
              dg::blas1::scal(v.tmp[0], 0.5);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);//1/2B^2
@@ -604,7 +604,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);   
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);  
-             dg::tensor.multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    
+             dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    
              nabla.div(v.tmp[0], v.tmp[1], result);       
         }
     },
@@ -616,7 +616,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);    
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);
-             dg::tensor.multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant             
+             dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant             
              nabla.div(v.tmp[0], v.tmp[1], result);
              dg::blas1::scal(result, v.p.tau[1]);      
         }
@@ -636,7 +636,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.tmp[1], result, result);
              dg::blas1::axpby(1, v.tmp[0], 1, result); //grad J_||*b_perp
              
-             dg::pointwiseDot(v.f.induction(), v.f.divCurvKappa(), v.tmp[2]); 
+             dg::blas1::pointwiseDot(v.f.induction(), v.f.divCurvKappa(), v.tmp[2]); 
              dg::blas1::copy(v.f.curv()[0], v.tmp[0]); 
              dg::blas1::copy(v.f.curv()[1], v.tmp[1]); 
              dg::blas1::axpby(1, v.f.curvKappa()[0], -1, v.tmp[0]);
@@ -685,8 +685,8 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[0], v.tmp2[0]); 
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]); //b_perp
                 				
-			 dg::blas1::pointwiseDot(v.tmp[0], v.tmp2[0], v.tmp[0])
-			 dg::blas1::pointwiseDot(v.tmp[1], v.tmp2[1], v.tmp[1])
+			 dg::blas1::pointwiseDot(v.tmp[0], v.tmp2[0], v.tmp[0]);
+			 dg::blas1::pointwiseDot(v.tmp[1], v.tmp2[1], v.tmp[1]);
 			 dg::blas1::axpby(1, v.tmp[1], 1, v.tmp[0]);
 			 dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);    
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
@@ -698,7 +698,12 @@ std::vector<Record> diagnostics2d_list = {
     ///----------------------EXTRA RAUL ADDITION-------------------------///
         {"er", "Radial electric field", false,
         []( DVec& result, Variables& v){
-			dg::blas1::scal( v.gradPsip, 1/sqrt(v.gradPsip[0]*v.gradPsip[0]+v.gradPsip[1]*v.gradPsip[1]), result);
+			dg::blas1::pointwiseDot(v.gradPsip[0], v.gradPsip[0], v.tmp[0]);
+			dg::blas1::pointwiseDot(v.gradPsip[1], v.gradPsip[1], v.tmp[1]);
+			dg::blas1::axpby(1, v.tmp[0], 1, v.tmp[1]);
+			dg::blas1::copy(dg::evaluate(dg::InvSqrt, v.tmp[1]), v.tmp[0]);
+			dg::blas1::pointwiseDot(v.gradPsip, v.tmp[0], result);
+			//dg::blas1::scal( v.gradPsip, 1/sqrt(v.gradPsip[0]*v.gradPsip[0]+v.gradPsip[1]*v.gradPsip[1]), result);
             routines::dot( v.f.gradP(0), result, result);
         }
     },  

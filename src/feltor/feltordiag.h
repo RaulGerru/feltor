@@ -799,7 +799,7 @@ std::vector<Record> diagnostics2d_list = {
             dg::blas1::scal( result, v.p.nu_parallel[1]);
         }
     },
-    /// ------------------------ Vorticity terms ---------------------------//
+    /// ------------------------ Vorticity terms ---------------------------//   
     {"er", "Radial electric field", false,
         []( DVec& result, Variables& v){
 			dg::blas1::scal( v.gradPsip, 1/sqrt(v.gradPsip[0]*v.gradPsip[0]+v.gradPsip[1]*v.gradPsip[1]), result);
