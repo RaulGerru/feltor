@@ -102,7 +102,7 @@ struct radial_cut
  * @ingroup misc_geo
  */
 
-template<class Geometry, class Matrix, class Container>                                                                                                                            
+template<class Geometry, class Container, class Matrix>                                                                                                                            
 struct Nablas 
 {
 	using geometry_type = Geometry;

@@ -193,7 +193,7 @@ struct Variables{
     feltor::Explicit<Geometry, IDMatrix, DMatrix, DVec>& f;
     feltor::Parameters p;
     dg::geo::TokamakMagneticField mag;
-    dg::geo::Nablas nabla<Geometry, DVec, IDMatrix>&;
+    dg::geo::Nablas<Geometry, DVec, DMatrix> nabla;
     std::array<DVec, 3> gradPsip;
     std::array<DVec, 3> tmp;
     std::array<DVec, 3> tmp2;
@@ -484,7 +484,7 @@ std::vector<Record> diagnostics2d_list = {
     
      {"elec_ tensor term_tt", "electric tensor term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) {            
-             nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
+             v.nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); //tmp[]=u_E
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
              
@@ -495,19 +495,19 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[0], v.tmp2[0]); 
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]);//tmp2[]=N grad phi/B^2 
              v.nabla.div(v.tmp2[0], v.tmp2[1], v.tmp[3]);
-             nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[0], v.tmp3[0]); 
-             nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[1], v.tmp3[1]); 
+             v.nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[0], v.tmp3[0]); 
+             v.nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[1], v.tmp3[1]); 
              dg::blas1::pointwiseDot(v.tmp[3], v.tmp2[0], v.tmp2[0]);//div(N grad(phi)/B^2)*u_E
              dg::blas1::pointwiseDot(v.tmp[3], v.tmp2[1], v.tmp2[1]);          
              dg::blas1::axpby(1,v.tmp2[0], 1, v.tmp3[0]);
              dg::blas1::axpby(1,v.tmp2[1], 1, v.tmp3[1]);
-             nabla.div(v.tmp3[0], v.tmp3[1], result);
+             v.nabla.div(v.tmp3[0], v.tmp3[1], result);
         }
     },
     
          {"dielec_ tensor term_tt", "Dielectric tensor term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) {            
-             nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
+             v.nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); //u_E
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
              
@@ -518,14 +518,14 @@ std::vector<Record> diagnostics2d_list = {
              
              v.nabla.div(v.tmp2[0],v.tmp2[1], v.tmp[2]);
              
-             nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[0], v.tmp2[2]); 
-             nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[1], v.tmp2[1]); 
+             v.nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[0], v.tmp2[2]); 
+             v.nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[1], v.tmp2[1]); 
              
              dg::blas1::pointwiseDot(v.tmp[2], v.tmp[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.tmp[2], v.tmp[1], v.tmp[1]);          
              dg::blas1::axpby(1,v.tmp[0], 1, v.tmp2[2]);
              dg::blas1::axpby(1,v.tmp[1], 1, v.tmp2[1]);
-             nabla.div(v.tmp2[2], v.tmp2[1], result);            
+             v.nabla.div(v.tmp2[2], v.tmp2[1], result);            
         }
     },
     
@@ -546,7 +546,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);//1/2B^2
              
-             nabla.b_cross_v (v.f.gradA()[0], v.f.gradA()[1], v.tmp[1], v.tmp[2]);
+             v.nabla.b_cross_v (v.f.gradA()[0], v.f.gradA()[1], v.tmp[1], v.tmp[2]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[2], v.tmp[2]);
              dg::blas1::scal(v.tmp[1], -1);
@@ -562,11 +562,11 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.tmp[0], v.tmp3[2], v.tmp3[2]);	
              dg::blas1::axpby(1, v.tmp2[0], 1, v.tmp3[0]);
              dg::blas1::axpby(1, v.tmp2[1], 1, v.tmp3[1]);
-             nabla.div(v.tmp3[0], v.tmp3[1], result);
+             v.nabla.div(v.tmp3[0], v.tmp3[1], result);
                   
              dg::blas1::pointwiseDot(result, v.tmp[1], v.tmp[1]);
              dg::blas1::pointwiseDot(result, v.tmp[2], v.tmp[2]);
-             nabla.div(v.tmp[1], v.tmp[2], result);      
+             v.nabla.div(v.tmp[1], v.tmp[2], result);      
         }
     },
     
@@ -577,7 +577,7 @@ std::vector<Record> diagnostics2d_list = {
             dg::blas1::axpby(v.p.tau[1], v.f.density(1), v.p.tau[0], v.tmp[0]);
             dg::blas1::pointwiseDot(v.tmp[0], v.f.curv()[1], v.tmp[1]);  
             dg::blas1::pointwiseDot(v.tmp[0], v.f.curv()[0], v.tmp[0]);
-            nabla.div(v.tmp[0], v.tmp[1], result);  
+            v.nabla.div(v.tmp[0], v.tmp[1], result);  
         }
     },
     
@@ -593,7 +593,7 @@ std::vector<Record> diagnostics2d_list = {
             dg::blas1::axpby(v.p.mu[0], v.tmp2[0], v.p.mu[1], v.tmp2[1]); 
             dg::blas1::pointwiseDot(v.tmp2[1], v.f.curvKappa()[0], v.tmp2[0]);
             dg::blas1::pointwiseDot(v.tmp2[1], v.f.curvKappa()[1], v.tmp2[1]);               
-            nabla.div(v.tmp2[0], v.tmp2[1], result);           
+            v.nabla.div(v.tmp2[0], v.tmp2[1], result);           
         }
     },
     {"elec_S_vorticity_term_tt", "Electric source vorticity (time integrated)", true, //FINAL
@@ -605,7 +605,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);   
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);  
              dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    
-             nabla.div(v.tmp[0], v.tmp[1], result);       
+             v.nabla.div(v.tmp[0], v.tmp[1], result);       
         }
     },
     
@@ -617,21 +617,21 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);    
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);
              dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant             
-             nabla.div(v.tmp[0], v.tmp[1], result);
+             v.nabla.div(v.tmp[0], v.tmp[1], result);
              dg::blas1::scal(result, v.p.tau[1]);      
         }
     },
     
     {"current_perp_term_tt", "Perp gradient current term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) {
-             nabla.b_cross_v (v.f.gradA()[0], v.f.gradA()[1], v.tmp[0], v.tmp[1]);
+             v.nabla.b_cross_v (v.f.gradA()[0], v.f.gradA()[1], v.tmp[0], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);//b_perp
                         
              dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), v.tmp[2]);
              dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., v.tmp[2]);
              dg::blas1::copy(v.tmp[2], v.tmp2[0]); //v.tmp2[0]=J_||
-             nabla.Grad_perp_f(v.tmp[2], v.tmp[2], result);
+             v.nabla.Grad_perp_f(v.tmp[2], v.tmp[2], result);
              dg::blas1::pointwiseDot(v.tmp[0], v.tmp[2], v.tmp[0]);
              dg::blas1::pointwiseDot(v.tmp[1], result, result);
              dg::blas1::axpby(1, v.tmp[0], 1, result); //grad J_||*b_perp
@@ -652,7 +652,7 @@ std::vector<Record> diagnostics2d_list = {
     
     {"elec_extra_term_tt", "Electric extra term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) {             
-             nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
+             v.nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
@@ -663,11 +663,11 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.tmp[0], v.f.gradN(1)[0], v.tmp2[0]);
              dg::blas1::pointwiseDot(v.tmp[1], v.f.gradN(1)[1], v.tmp2[1]);
              dg::blas1::axpby(1, v.tmp2[0], 1, v.tmp2[1]);
-             nabla.div(v.tmp[0], v.tmp[1], v.tmp[0]);
+             v.nabla.div(v.tmp[0], v.tmp[1], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.density(1), v.tmp[0], v.tmp[0]);
              dg::blas1::axpby(1, v.tmp2[1], 1, v.tmp[0]);
-             nabla.Grad_perp_f(v.tmp[0], v.tmp[1], v.tmp[2]);
-             nabla.div(v.tmp[1], v.tmp[2], result);  
+             v.nabla.Grad_perp_f(v.tmp[0], v.tmp[1], v.tmp[2]);
+             v.nabla.div(v.tmp[1], v.tmp[2], result);  
              dg::blas1::scal(result, v.p.tau[1]);          
         }
     },
@@ -681,7 +681,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::axpby(1, v.tmp2[0], 1, v.tmp[0]);
              dg::blas1::axpby(1, v.tmp2[1], 1, v.tmp[1]); //U grad N+N grad U
                          
-             nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp2[0], v.tmp2[1]);
+             v.nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp2[0], v.tmp2[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[0], v.tmp2[0]); 
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]); //b_perp
                 				
@@ -690,8 +690,8 @@ std::vector<Record> diagnostics2d_list = {
 			 dg::blas1::axpby(1, v.tmp[1], 1, v.tmp[0]);
 			 dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);    
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
-             nabla.Grad_perp_f(v.tmp[0], v.tmp[1], v.tmp[2]);
-             nabla.div(v.tmp[1], v.tmp[2], result); 
+             v.nabla.Grad_perp_f(v.tmp[0], v.tmp[1], v.tmp[2]);
+             v.nabla.div(v.tmp[1], v.tmp[2], result); 
              dg::blas1::scal(result, v.p.tau[1]);         
         }
     },
