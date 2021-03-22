@@ -222,7 +222,7 @@ int main( int argc, char* argv[])
     gradPsip[1] =  dg::evaluate( mag.psipZ(), grid);
     gradPsip[2] =  resultD; //zero
     DVec hoo = dg::pullback( dg::geo::Hoo( mag), grid);
-    dg::geo::Nablas<Geometry, DMatrix, DVec> nabla(grid, p, mag); 
+    dg::geo::Nablas<Geometry, DVec, DMatrix> nabla(grid, p, mag); 
     feltor::Variables var = {
         feltor, p, mag, nabla, gradPsip, gradPsip, gradPsip, gradPsip, hoo
     };
