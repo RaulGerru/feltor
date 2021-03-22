@@ -456,7 +456,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::copy(v.f.gradP(0)[1], v.tmp[1]);
              dg::blas1::pointwiseDot( v.f.density(1), v.tmp[0]); 
              dg::blas1::pointwiseDot( v.f.density(1), v.tmp[1]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]); ///////// error: no instance of overloaded function "dg::blas1::pointwiseDot" matches the argument list argument types are: (const DVec, DVec)
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);    
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);  
@@ -474,7 +474,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);    
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);  
-             dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    
+             dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    //////////////// THIS GIVES NO PROBLEEEEMS??? WHAT THE HELL
              v.nabla.div(v.tmp[0], v.tmp[1], result);
              dg::blas1::scal(result, -1);
              dg::blas1::scal(result, v.p.tau[1]);
@@ -483,7 +483,7 @@ std::vector<Record> diagnostics2d_list = {
     
      {"elec_ tensor term_tt", "electric tensor term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) {            
-             v.nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
+             v.nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]); /////////////////////////error: no instance of function template "dg::geo::Nablas<Geometry, Container, Matrix>::b_cross_v [with Geometry=Geometry, Container=DVec, Matrix=DMatrix]" matches the argument list argument types are: (const DVec, const DVec, DVec, DVec) object type is: dg::geo::Nablas<Geometry, DVec, DMatrix>
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); //tmp[]=u_E
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
              
@@ -532,7 +532,7 @@ std::vector<Record> diagnostics2d_list = {
         []( DVec& result, Variables& v) { 
              dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), v.tmp[0]);
              dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., v.tmp[0]);  
-             dg::geo::ds_centered( v.tmp[0], v.tmp[1]);
+             dg::geo::ds_centered( v.tmp[0], v.tmp[1]); //////// feltordiagRaul.h(535): error: no instance of function template "dg::geo::ds_centered" matches the argument list argument types are: (DVec, DVec)
              dg::blas1::pointwiseDot(dg::geo::GradLnB(v.mag), v.tmp[0], v.tmp[0]);
              dg::blas1::axpbypgz(1, v.tmp[0], -1, v.tmp[1], 1, result);         
         }
@@ -540,7 +540,8 @@ std::vector<Record> diagnostics2d_list = {
     
     {"mag_term_tt", "Magnetization term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v, Geometry& grid) {
-             dg::blas1::copy(dg::evaluate(dg:ones, grid), v.tmp[0]);
+             dg::blas1::copy(dg::evaluate(dg:ones, grid), v.tmp[0]); /////////////////////////////////feltordiagRaul.h(543): error: a namespace name is not allowed feltordiagRaul.h(543): error: expected a ")" feltordiagRaul.h(543): error: no instance of overloaded function "dg::evaluate" matches the argument list argument types are: (<error-type>) feltordiagRaul.h(543): error: expected a ";"
+
              dg::blas1::scal(v.tmp[0], 0.5);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);//1/2B^2
@@ -700,7 +701,7 @@ std::vector<Record> diagnostics2d_list = {
 			dg::blas1::pointwiseDot(v.gradPsip[0], v.gradPsip[0], v.tmp[0]);
 			dg::blas1::pointwiseDot(v.gradPsip[1], v.gradPsip[1], v.tmp[1]);
 			dg::blas1::axpby(1, v.tmp[0], 1, v.tmp[1]);
-			dg::blas1::copy(dg::evaluate(dg::InvSqrt, v.tmp[1]), v.tmp[0]);
+			dg::blas1::copy(dg::evaluate(dg::InvSqrt, v.tmp[1]), v.tmp[0]); ////////////////////////feltordiagRaul.h(703): error: argument list for class template "dg::InvSqrt" is missing feltordiagRaul.h(703): error: no instance of overloaded function "dg::evaluate" matches the argument list argument types are: (<error-type>, DVec)
 			dg::blas1::pointwiseDot(v.gradPsip, v.tmp[0], result);
 			//dg::blas1::scal( v.gradPsip, 1/sqrt(v.gradPsip[0]*v.gradPsip[0]+v.gradPsip[1]*v.gradPsip[1]), result);
             dg::blas1::pointwiseDot( v.f.gradP(0), result, result);
