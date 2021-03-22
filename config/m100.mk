@@ -10,12 +10,8 @@ NVCCARCH=-arch sm_70 -Xcudafe "--diag_suppress=code_is_unreachable --diag_suppre
 NVCCFLAGS= -std=c++14 -Xcompiler "-mcpu=power9 -Wall"# -mavx -mfma" #flags for NVCC
 
 INCLUDE += -I$(NETCDF_INC) -I$(HDF5_INC) -I$(JSONCPP_INC)
-<<<<<<< HEAD
 JSONLIB=-L$(JSONCPP_LIB) -ljsoncpp # json library for input parameters
-=======
-JSONLIB=-L$(JSONCPP_LIB) -ljsoncpp
 #JSONLIB=-L$(HOME)/include/json/../../lib -ljsoncpp_static # json library for input parameters
->>>>>>> 91c98c0bd8b438c18ee2ea0052a8870939499f27
 LIBS    =-L$(HDF5_LIB) -lhdf5 -lhdf5_hl
 LIBS    +=-L$(NETCDF_LIB) -lnetcdf -lcurl
 endif
