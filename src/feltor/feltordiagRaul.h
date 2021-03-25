@@ -454,12 +454,12 @@ std::vector<Record> diagnostics2d_list = {
         []( DVec& result, Variables& v) {
 			 dg::blas1::copy(v.f.gradP(0)[0], v.tmp[0]);
              dg::blas1::copy(v.f.gradP(0)[1], v.tmp[1]);
-             dg::blas1::pointwiseDot( v.f.density(1), v.tmp[0]); 
-             dg::blas1::pointwiseDot( v.f.density(1), v.tmp[1]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]); ///////// error: no instance of overloaded function "dg::blas1::pointwiseDot" matches the argument list argument types are: (const DVec, DVec)
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);    
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);  
+             dg::blas1::pointwiseDot( v.f.density(1), v.tmp[0], v.tmp[0]); 
+             dg::blas1::pointwiseDot( v.f.density(1), v.tmp[1], v.tmp[1]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); ///////// error: no instance of overloaded function "dg::blas1::pointwiseDot" matches the argument list argument types are: (const DVec, DVec)
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);    
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);  
              dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    //CHANGE THE METRICS TO projection
              v.nabla.div(v.tmp[0], v.tmp[1], result); 
              dg::blas1::scal(result, -1);
@@ -470,10 +470,10 @@ std::vector<Record> diagnostics2d_list = {
         []( DVec& result, Variables& v) {         
 			 dg::blas1::copy(v.f.gradN(1)[0], v.tmp[0]);
              dg::blas1::copy(v.f.gradN(1)[1], v.tmp[1]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);    
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);  
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);    
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);  
              dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    //////////////// THIS GIVES NO PROBLEEEEMS??? WHAT THE HELL
              v.nabla.div(v.tmp[0], v.tmp[1], result);
              dg::blas1::scal(result, -1);
@@ -600,10 +600,10 @@ std::vector<Record> diagnostics2d_list = {
         []( DVec& result, Variables& v) {
              dg::blas1::pointwiseDot(v.f.density_source(1), v.f.gradP(0)[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.density_source(1), v.f.gradP(0)[1], v.tmp[1]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);   
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);  
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);   
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]), v.tmp[1];  
              dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    
              v.nabla.div(v.tmp[0], v.tmp[1], result);       
         }
@@ -612,10 +612,10 @@ std::vector<Record> diagnostics2d_list = {
     {"dielec_S_vorticity_term_tt", "Dielectric source vorticity (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) {
              v.f.compute_gradSN(0,  v.tmp); 
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);    
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);    
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);    
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);    
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
              dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant             
              v.nabla.div(v.tmp[0], v.tmp[1], result);
              dg::blas1::scal(result, v.p.tau[1]);      
