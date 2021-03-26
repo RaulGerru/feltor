@@ -603,7 +603,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);   
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]), v.tmp[1];  
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]), v.tmp[1]);  
              dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    
              v.nabla.div(v.tmp[0], v.tmp[1], result);       
         }
@@ -696,17 +696,12 @@ std::vector<Record> diagnostics2d_list = {
         }
     },
     ///----------------------EXTRA RAUL ADDITION-------------------------///
-        {"er", "Radial electric field", false,
-        []( DVec& result, Variables& v){
-			dg::blas1::pointwiseDot(v.gradPsip[0], v.gradPsip[0], v.tmp[0]);
-			dg::blas1::pointwiseDot(v.gradPsip[1], v.gradPsip[1], v.tmp[1]);
-			dg::blas1::axpby(1, v.tmp[0], 1, v.tmp[1]);
-			dg::blas1::copy(dg::evaluate(dg::InvSqrt, v.tmp[1]), v.tmp[0]); ////////////////////////feltordiagRaul.h(703): error: argument list for class template "dg::InvSqrt" is missing feltordiagRaul.h(703): error: no instance of overloaded function "dg::evaluate" matches the argument list argument types are: (<error-type>, DVec)
-			dg::blas1::pointwiseDot(v.gradPsip, v.tmp[0], result);
-			//dg::blas1::scal( v.gradPsip, 1/sqrt(v.gradPsip[0]*v.gradPsip[0]+v.gradPsip[1]*v.gradPsip[1]), result);
-            dg::blas1::pointwiseDot( v.f.gradP(0), result, result);
-        }
-    },  
+    
+    //    {"er", "Radial electric field", false,
+    //    []( DVec& result, Variables& v){
+	//		dg::blas1::copy()
+    //    }
+    //},  
      {"par_J", "Parallel current", false,
         []( DVec& result, Variables& v ) {
             dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), result);
