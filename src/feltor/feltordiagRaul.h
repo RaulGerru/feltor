@@ -449,14 +449,13 @@ std::vector<Record> diagnostics2d_list = {
         }
     },
     ///-----------------------RAUL VORTICITY ADDITIONS-------------------///
-
     {"elec_vorticity", "Electric vorticity (as time derivative)", false, //FINAL
         []( DVec& result, Variables& v) {
 			 dg::blas1::copy(v.f.gradP(0)[0], v.tmp[0]);
              dg::blas1::copy(v.f.gradP(0)[1], v.tmp[1]);
              dg::blas1::pointwiseDot( v.f.density(1), v.tmp[0], v.tmp[0]); 
              dg::blas1::pointwiseDot( v.f.density(1), v.tmp[1], v.tmp[1]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); ///////// error: no instance of overloaded function "dg::blas1::pointwiseDot" matches the argument list argument types are: (const DVec, DVec)
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);    
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);  
@@ -464,8 +463,7 @@ std::vector<Record> diagnostics2d_list = {
              v.nabla.div(v.tmp[0], v.tmp[1], result); 
              dg::blas1::scal(result, -1);
         }
-    },
-    
+    },   
     {"dielec_vorticity", "Dielectric vorticity (as time derivative)", false, //FINAL
         []( DVec& result, Variables& v) {         
 			 dg::blas1::copy(v.f.gradN(1)[0], v.tmp[0]);
@@ -479,11 +477,10 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::scal(result, -1);
              dg::blas1::scal(result, v.p.tau[1]);
         }
-    },
-    
-     {"elec_ tensor term_tt", "electric tensor term (time integrated)", true, //FINAL
+    }, 
+    {"elec_ tensor term_tt", "electric tensor term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) {            
-             v.nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]); /////////////////////////error: no instance of function template "dg::geo::Nablas<Geometry, Container, Matrix>::b_cross_v [with Geometry=Geometry, Container=DVec, Matrix=DMatrix]" matches the argument list argument types are: (const DVec, const DVec, DVec, DVec) object type is: dg::geo::Nablas<Geometry, DVec, DMatrix>
+             v.nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]); 
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); //tmp[]=u_E
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
              
@@ -503,8 +500,7 @@ std::vector<Record> diagnostics2d_list = {
              v.nabla.div(v.tmp3[0], v.tmp3[1], result);
         }
     },
-    
-         {"dielec_ tensor term_tt", "Dielectric tensor term (time integrated)", true, //FINAL
+    {"dielec_ tensor term_tt", "Dielectric tensor term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) {            
              v.nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); //u_E
@@ -527,7 +523,6 @@ std::vector<Record> diagnostics2d_list = {
              v.nabla.div(v.tmp2[2], v.tmp2[1], result);            
         }
     },
-    
     {"par_current_term_tt", "Parallel current term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) { 
              dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), v.tmp[0]);
@@ -537,7 +532,6 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::axpbypgz(1, v.tmp[0], -1, v.tmp[1], 1, result);         
         }
     },
-    
     {"mag_term_tt", "Magnetization term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v, Geometry& grid) {
              dg::blas1::copy(dg::evaluate(dg:ones, grid), v.tmp[0]); /////////////////////////////////feltordiagRaul.h(543): error: a namespace name is not allowed feltordiagRaul.h(543): error: expected a ")" feltordiagRaul.h(543): error: no instance of overloaded function "dg::evaluate" matches the argument list argument types are: (<error-type>) feltordiagRaul.h(543): error: expected a ";"
@@ -569,7 +563,6 @@ std::vector<Record> diagnostics2d_list = {
              v.nabla.div(v.tmp[1], v.tmp[2], result);      
         }
     },
-    
     {"curv_term_tt", "curvature term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) {           
             dg::blas1::copy(v.f.density(0), v.tmp[0]); 
@@ -580,8 +573,7 @@ std::vector<Record> diagnostics2d_list = {
             v.nabla.div(v.tmp[0], v.tmp[1], result);  
         }
     },
-    
-     {"curvKappa_term_tt", "curvature Kappa term (time integrated)", true, //FINAL
+    {"curvKappa_term_tt", "curvature Kappa term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) {                       
             dg::blas1::copy(v.f.density(0), v.tmp2[0]); 
             dg::blas1::scal(v.tmp2[0], -1); 
@@ -603,12 +595,11 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);   
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1]), v.tmp[1]);  
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);  
              dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    
              v.nabla.div(v.tmp[0], v.tmp[1], result);       
         }
     },
-    
     {"dielec_S_vorticity_term_tt", "Dielectric source vorticity (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) {
              v.f.compute_gradSN(0,  v.tmp); 
@@ -620,8 +611,7 @@ std::vector<Record> diagnostics2d_list = {
              v.nabla.div(v.tmp[0], v.tmp[1], result);
              dg::blas1::scal(result, v.p.tau[1]);      
         }
-    },
-    
+    },    
     {"current_perp_term_tt", "Perp gradient current term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) {
              v.nabla.b_cross_v (v.f.gradA()[0], v.f.gradA()[1], v.tmp[0], v.tmp[1]);
@@ -648,8 +638,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::axpby(1, v.tmp[2], 1, result); 
                     
         }
-    },
-    
+    },    
     {"elec_extra_term_tt", "Electric extra term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) {             
              v.nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
@@ -670,8 +659,7 @@ std::vector<Record> diagnostics2d_list = {
              v.nabla.div(v.tmp[1], v.tmp[2], result);  
              dg::blas1::scal(result, v.p.tau[1]);          
         }
-    },
-    
+    },    
     {"par_extra_term_tt", "Parallel extra term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v) { 
              dg::blas1::pointwiseDot(v.f.velocity(1), v.f.gradN(1)[0], v.tmp[0]);
@@ -702,12 +690,12 @@ std::vector<Record> diagnostics2d_list = {
 	//		dg::blas1::copy()
     //    }
     //},  
-     {"par_J", "Parallel current", false,
-        []( DVec& result, Variables& v ) {
-            dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), result);
-            dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., result);
-        }
-    },
+    // {"par_J", "Parallel current", false,
+    //    []( DVec& result, Variables& v ) {
+    //        dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), result);
+    //        dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., result);
+    //    }
+    //},
         /// -----------------Miscellaneous additions --------------------//
     {"vorticity", "Minus Lap_perp of electric potential", false,
         []( DVec& result, Variables& v ) {

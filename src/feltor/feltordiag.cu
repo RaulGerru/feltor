@@ -16,7 +16,7 @@ using IDMatrix = dg::IDMatrix;
 using IHMatrix = dg::IHMatrix;
 using Geometry = dg::CylindricalGrid3d;
 #define MPI_OUT
-#include "feltordiag.h"
+#include "feltordiagRaul.h"
 
 int main( int argc, char* argv[])
 {
