@@ -204,7 +204,7 @@ struct Nablas
 	template<class Container1>
 	void b_cross_v (const Container1& v_R_o, const Container1& v_Z_o, Container1& v_R_f, Container1& v_Z_f){ //INPUT: COVARIANT
 	dg::tensor::multiply2d(m_hh, v_R_o, v_Z_o, m_tmp, m_tmp2); //to transform the vector from covariant to contravariant
-    dg::blas1::scal(-1, m_tmp2);
+    dg::blas1::pointwiseDot(-1, m_tmp2, m_tmp2);
     dg::blas1::pointwiseDot(m_vol, m_tmp2, v_R_f);       
 	dg::blas1::pointwiseDot(m_vol, m_tmp, v_Z_f); //OUTPUT: CONTRAVARIANT
 	}
