@@ -524,11 +524,10 @@ std::vector<Record> diagnostics2d_list = {
         }
     },
     {"par_current_term_tt", "Parallel current term (time integrated)", true, //FINAL
-        []( DVec& result, Variables& v, Geometry& grid) { 
+        []( DVec& result, Variables& v) { 
              dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), v.tmp[0]);
              dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., v.tmp[0]); //J_||            
-             v.tmp[2]=dg::geo::Divb(v.mag);//- grad_|| Ln B
-             dg::blas1::pointwiseDot(v.tmp[2], v.tmp[0], v.tmp[0]);//-J_||grad_|| Ln B
+             dg::blas1::pointwiseDot(v.f.divb(), v.tmp[0], v.tmp[0]);//-J_||grad_|| Ln B
              
              v.f.compute_dsN(0, v.tmp2[0]);
              v.f.compute_dsU(0, v.tmp2[1]);
@@ -545,7 +544,7 @@ std::vector<Record> diagnostics2d_list = {
         }
     },
     {"mag_term_tt", "Magnetization term (time integrated)", true, //FINAL
-        []( DVec& result, Variables& v, Geometry& grid, ) {
+        []( DVec& result, Variables& v) {
              //v.tmp[0]=dg::evaluate(dg:ones, grid);
              dg::blas1::copy(1, v.tmp[0]); /////////////////////////////////feltordiagRaul.h(543): error: a namespace name is not allowed feltordiagRaul.h(543): error: expected a ")" feltordiagRaul.h(543): error: no instance of overloaded function "dg::evaluate" matches the argument list argument types are: (<error-type>) feltordiagRaul.h(543): error: expected a ";"
 
