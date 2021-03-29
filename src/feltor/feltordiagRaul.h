@@ -198,6 +198,7 @@ struct Variables{
     std::array<DVec, 3> tmp;
     std::array<DVec, 3> tmp2;
     std::array<DVec, 3> tmp3;
+	dg::geo::Fieldaligned<Geometry, IDMatrix, DVec> dsFA;
     DVec hoo; //keep hoo there to avoid pullback
 };
 
@@ -524,17 +525,17 @@ std::vector<Record> diagnostics2d_list = {
         }
     },
     {"par_current_term_tt", "Parallel current term (time integrated)", true, //FINAL
-        []( DVec& result, Variables& v) { 
+        []( DVec& result, Variables& v, Geometry& grid) { 
              dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), v.tmp[0]);
              dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., v.tmp[0]);  
-             dg::geo::ds_centered( v.tmp[0], v.tmp[1]); //////// feltordiagRaul.h(535): error: no instance of function template "dg::geo::ds_centered" matches the argument list argument types are: (DVec, DVec)
+             ds.centered(v.tmp[0], v.tmp[1]); //////// feltordiagRaul.h(535): error: no instance of function template "dg::geo::ds_centered" matches the argument list argument types are: (DVec, DVec)
              v.tmp[2]=dg::geo::GradLnB(v.mag);
              dg::blas1::pointwiseDot(v.tmp[2], v.tmp[0], v.tmp[0]);
              dg::blas1::axpbypgz(1, v.tmp[0], -1, v.tmp[1], 1, result);         
         }
     },
     {"mag_term_tt", "Magnetization term (time integrated)", true, //FINAL
-        []( DVec& result, Variables& v, Geometry& grid) {
+        []( DVec& result, Variables& v, Geometry& grid, ) {
              //v.tmp[0]=dg::evaluate(dg:ones, grid);
              dg::blas1::copy(1, v.tmp[0]); /////////////////////////////////feltordiagRaul.h(543): error: a namespace name is not allowed feltordiagRaul.h(543): error: expected a ")" feltordiagRaul.h(543): error: no instance of overloaded function "dg::evaluate" matches the argument list argument types are: (<error-type>) feltordiagRaul.h(543): error: expected a ";"
 

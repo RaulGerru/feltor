@@ -223,8 +223,12 @@ int main( int argc, char* argv[])
     gradPsip[2] =  resultD; //zero
     DVec hoo = dg::pullback( dg::geo::Hoo( mag), grid);
     dg::geo::Nablas<Geometry, DVec, DMatrix> nabla(grid, p, mag); 
+    
+    dg::geo::CylindricalVectorLvl0 bhat = dg::geo::createBHat(mag);
+    dg::geo::Fieldaligned<Geometry, IDMatrix, DVec>  dsFA( bhat, grid, dg::NEU, dg::NEU, dg::geo::NoLimiter(), 1e-8, 10, 10);
+    dg::geo::DS<Geometry, IDMatrix, DMatrix, DVec> ds(dsFA, dg::centered); 
     feltor::Variables var = {
-        feltor, p, mag, nabla, gradPsip, gradPsip, gradPsip, gradPsip, hoo
+        feltor, p, mag, nabla, gradPsip, gradPsip, gradPsip, gradPsip, ds, hoo
     };
     // the vector ids
     std::map<std::string, int> id3d, id4d, restart_ids;
