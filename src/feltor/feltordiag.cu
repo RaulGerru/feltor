@@ -245,9 +245,9 @@ int main( int argc, char* argv[])
     err = nc_put_att_text( ncid_out, tvarID, "long_name", long_name.size(),
             long_name.data());
     int dim_ids1d[2] = {dim_ids[0], 0}; //time,  psi
-    err = file::define_dimension( ncid_out, &dim_ids1d[1], g1d_out, {"psi"} );
+    err = dg::file::define_dimensions( ncid_out, &dim_ids1d[1], g1d_out, {"psi"} );
     int dim_ids1d_pol[2] = {dim_ids[0], 0}; //time,  eta
-    err = file::define_dimension( ncid_out, &dim_ids1d_pol[1], g1d_out_eta, {"eta"} ); //NEW: Name of the new 1d DIRECTION
+    err = dg::file::define_dimensions( ncid_out, &dim_ids1d_pol[1], g1d_out_eta, {"eta"} ); //NEW: Name of the new 1d DIRECTION
     std::map<std::string, int> id0d, id1d, id1d_pol, id2d;
 
 
