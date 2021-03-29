@@ -198,7 +198,6 @@ struct Variables{
     std::array<DVec, 3> tmp;
     std::array<DVec, 3> tmp2;
     std::array<DVec, 3> tmp3;
-	dg::geo::Fieldaligned<Geometry, IDMatrix, DVec> dsFA;
     DVec hoo; //keep hoo there to avoid pullback
 };
 
@@ -527,11 +526,22 @@ std::vector<Record> diagnostics2d_list = {
     {"par_current_term_tt", "Parallel current term (time integrated)", true, //FINAL
         []( DVec& result, Variables& v, Geometry& grid) { 
              dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), v.tmp[0]);
-             dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., v.tmp[0]);  
-             ds.centered(v.tmp[0], v.tmp[1]); //////// feltordiagRaul.h(535): error: no instance of function template "dg::geo::ds_centered" matches the argument list argument types are: (DVec, DVec)
-             v.tmp[2]=dg::geo::GradLnB(v.mag);
-             dg::blas1::pointwiseDot(v.tmp[2], v.tmp[0], v.tmp[0]);
-             dg::blas1::axpbypgz(1, v.tmp[0], -1, v.tmp[1], 1, result);         
+             dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., v.tmp[0]); //J_||            
+             v.tmp[2]=dg::geo::Divb(v.mag);//- grad_|| Ln B
+             dg::blas1::pointwiseDot(v.tmp[2], v.tmp[0], v.tmp[0]);//-J_||grad_|| Ln B
+             
+             v.f.compute_dsN(0, v.tmp2[0]);
+             v.f.compute_dsU(0, v.tmp2[1]);
+             v.f.compute_dsN(1, v.tmp2[2]);
+             v.f.compute_dsU(1, v.tmp[1]); 
+             dg::blas1::pointwiseDot(v.f.density(0), v.tmp2[1], v.tmp2[1]);
+             dg::blas1::pointwiseDot(1., v.f.velocity(0), v.tmp2[0], 1., v.tmp2[1]); //electron parallel comp      
+             dg::blas1::pointwiseDot(v.f.density(1), v.tmp[1], v.tmp[1]);
+             dg::blas1::pointwiseDot(1., v.f.velocity(1), v.tmp2[2], 1., v.tmp[1]); //ion parallel comp
+             dg::blas1::axpby(1, v.tmp[1], -1, v.tmp2[1]); //Grad_|| J_||
+             
+
+             dg::blas1::axpbypgz(-1, v.tmp[0], -1, v.tmp2[1], 1, result);         
         }
     },
     {"mag_term_tt", "Magnetization term (time integrated)", true, //FINAL
