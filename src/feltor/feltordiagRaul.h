@@ -449,92 +449,97 @@ std::vector<Record> diagnostics2d_list = {
         }
     },
     ///-----------------------RAUL VORTICITY ADDITIONS-------------------///
-    {"v_elec_vort", "Electric vorticity (as time derivative)", false, //FINAL
+    {"v_elec_vort", "Electric vorticity (as time derivative)", false, //FINAL checked
         []( DVec& result, Variables& v) {
-			 dg::blas1::copy(v.f.gradP(0)[0], v.tmp[0]);
-             dg::blas1::copy(v.f.gradP(0)[1], v.tmp[1]);
-             dg::blas1::pointwiseDot( v.f.density(1), v.tmp[0], v.tmp[0]); 
-             dg::blas1::pointwiseDot( v.f.density(1), v.tmp[1], v.tmp[1]);
+             dg::blas1::pointwiseDot( v.f.density(1), v.f.gradP(0)[0], v.tmp[0]); 
+             dg::blas1::pointwiseDot( v.f.density(1), v.f.gradP(0)[1], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);    
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);  
-             dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    //CHANGE THE METRICS TO projection
+             dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant
+             //AM I USING HERE RIGHT THE PROJECTION? gradP(0) is covariant? symv is the covariant derivative (just to confirm)?
              v.nabla.div(v.tmp[0], v.tmp[1], result); 
         }
     },   
-    {"v_dielec_vort", "Dielectric vorticity (as time derivative)", false, //FINAL
+    {"v_dielec_vort", "Dielectric vorticity (as time derivative)", false, //FINAL checked
         []( DVec& result, Variables& v) {         
-			 dg::blas1::copy(v.f.gradN(1)[0], v.tmp[0]);
-             dg::blas1::copy(v.f.gradN(1)[1], v.tmp[1]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);    
+             dg::blas1::pointwiseDot(v.f.binv(), v.f.gradN(1)[0], v.tmp[0]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
+             dg::blas1::pointwiseDot(v.f.binv(), v.f.gradN(1)[1], v.tmp[1]);   
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);  
              dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    //////////////// THIS GIVES NO PROBLEEEEMS??? WHAT THE HELL
              v.nabla.div(v.tmp[0], v.tmp[1], result);
              dg::blas1::scal(result, v.p.tau[1]);
         }
     }, 
-    {"v_elec_adv_tt", "Electric tensor term (time integrated)", true, //FINAL
+    {"v_elec_adv_tt", "Electric tensor term (time integrated)", true, //FINAL checked
         []( DVec& result, Variables& v) {            
              v.nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]); 
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); //tmp[]=u_E
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);             
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]); //tmp[]=u_E=b x grad(phi)/B           
              dg::blas1::pointwiseDot(v.f.density(1), v.f.gradP(0)[0], v.tmp2[0]); //N nabla_phi
              dg::blas1::pointwiseDot(v.f.density(1), v.f.gradP(0)[1], v.tmp2[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[0], v.tmp2[0]); 
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[0], v.tmp2[0]); 
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]);//tmp2[]=N grad phi/B^2 
-             v.nabla.div(v.tmp2[0], v.tmp2[1], v.tmp[3]);
+             dg::tensor::multiply2d(v.f.projection(), v.tmp2[0], v.tmp2[1], v.tmp2[0], v.tmp2[1]); //to transform the vector from covariant to contravariant    //////////////// THIS GIVES NO PROBLEEEEMS??? WHAT THE HELL
+             v.nabla.div(v.tmp2[0], v.tmp2[1], v.tmp[3]);//div(N grad(phi)/B^2)
+             dg::blas1::pointwiseDot(v.tmp[3], v.tmp[0], v.tmp2[0]);
+             dg::blas1::pointwiseDot(v.tmp[3], v.tmp[1], v.tmp2[1]);//div(N grad(phi)/B^2)*u_E
              v.nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[0], v.tmp3[0]); 
-             v.nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[1], v.tmp3[1]); 
-             dg::blas1::pointwiseDot(v.tmp[3], v.tmp[0], v.tmp2[0]);//div(N grad(phi)/B^2)*u_E
-             dg::blas1::pointwiseDot(v.tmp[3], v.tmp[1], v.tmp2[1]);          
+             v.nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[1], v.tmp3[1]); ////N grad(phi)/B^2*div u_E
+         
              dg::blas1::axpby(1,v.tmp2[0], 1, v.tmp3[0]);
              dg::blas1::axpby(1,v.tmp2[1], 1, v.tmp3[1]);
+             dg::tensor::multiply2d(v.f.projection(), v.tmp3[0], v.tmp3[1], v.tmp3[0], v.tmp3[1]); //to transform the vector from covariant to contravariant    //////////////// THIS GIVES NO PROBLEEEEMS??? WHAT THE HELL             
              v.nabla.div(v.tmp3[0], v.tmp3[1], result);
         }
     },
-    {"v_elec_adv_part_tt", "Partial electric tensor term (time integrated)", true, //FINAL
+    {"v_elec_adv_part_tt", "Partial electric tensor term (time integrated)", true, //FINAL checked
         []( DVec& result, Variables& v) {            
              v.nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]); 
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); //tmp[]=u_E
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);            
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);//tmp[]=u_E=b x grad(phi)/B            
              dg::blas1::pointwiseDot(v.f.density(1), v.f.gradP(0)[0], v.tmp2[0]); //N nabla_phi
              dg::blas1::pointwiseDot(v.f.density(1), v.f.gradP(0)[1], v.tmp2[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[0], v.tmp2[0]); 
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[0], v.tmp2[0]); 
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]);//tmp2[]=N grad phi/B^2 
+             dg::tensor::multiply2d(v.f.projection(), v.tmp2[0], v.tmp2[1], v.tmp2[0], v.tmp2[1]); //to transform the vector from covariant to contravariant    //////////////// THIS GIVES NO PROBLEEEEMS??? WHAT THE HELL
              v.nabla.div(v.tmp2[0], v.tmp2[1], v.tmp[3]); 
              dg::blas1::pointwiseDot(v.tmp[3], v.tmp[0], v.tmp[0]);//div(N grad(phi)/B^2)*u_E
-             dg::blas1::pointwiseDot(v.tmp[3], v.tmp[1], v.tmp[1]);          
+             dg::blas1::pointwiseDot(v.tmp[3], v.tmp[1], v.tmp[1]); 
+             dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    //////////////// THIS GIVES NO PROBLEEEEMS??? WHAT THE HELL                     
              v.nabla.div(v.tmp[0], v.tmp[1], result);
         }
     },
-    {"v_dielec_adv_tt", "Dielectric tensor term (time integrated)", true, //FINAL
+    {"v_dielec_adv_tt", "Dielectric tensor term (time integrated)", true, //FINAL checked
         []( DVec& result, Variables& v) {            
              v.nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); //u_E
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);             
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]); //tmp[]=u_E=b x grad(phi)/B             
              dg::blas1::pointwiseDivide(v.f.binv(), v.f.gradN(1)[0], v.tmp2[0]);
              dg::blas1::pointwiseDivide(v.f.binv(), v.tmp2[0], v.tmp2[0]);
              dg::blas1::pointwiseDivide(v.f.binv(), v.f.gradN(1)[1], v.tmp2[1]);
-             dg::blas1::pointwiseDivide(v.f.binv(), v.tmp2[1], v.tmp2[1]);            
-             v.nabla.div(v.tmp2[0],v.tmp2[1], v.tmp[2]);             
-             v.nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[0], v.tmp2[2]); 
-             v.nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[1], v.tmp2[1]);              
-             dg::blas1::pointwiseDot(v.tmp[2], v.tmp[0], v.tmp[0]);
-             dg::blas1::pointwiseDot(v.tmp[2], v.tmp[1], v.tmp[1]);          
-             dg::blas1::axpby(1,v.tmp[0], 1, v.tmp2[2]);
-             dg::blas1::axpby(1,v.tmp[1], 1, v.tmp2[1]);
-             v.nabla.div(v.tmp2[2], v.tmp2[1], result);
+             dg::blas1::pointwiseDivide(v.f.binv(), v.tmp2[1], v.tmp2[1]);
+             dg::tensor::multiply2d(v.f.projection(), v.tmp2[0], v.tmp2[1], v.tmp2[0], v.tmp2[1]); //to transform the vector from covariant to contravariant    //////////////// THIS GIVES NO PROBLEEEEMS??? WHAT THE HELL                                       
+             v.nabla.div(v.tmp2[0],v.tmp2[1], v.tmp[2]);
+             dg::blas1::pointwiseDot(v.tmp[2], v.tmp[0], v.tmp3[0]);
+             dg::blas1::pointwiseDot(v.tmp[2], v.tmp[1], v.tmp3[1]);             
+             v.nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[0], v.tmp[0]); 
+             v.nabla.v_dot_nabla_f(v.tmp2[0], v.tmp2[1], v.tmp[1], v.tmp[1]);              
+         
+             dg::blas1::axpby( 1, v.tmp2[2], 1, v.tmp3[0]);
+             dg::blas1::axpby( 1, v.tmp2[1], 1, v.tmp3[1]);
+             dg::tensor::multiply2d(v.f.projection(), v.tmp3[0], v.tmp3[1], v.tmp3[0], v.tmp3[1]); //to transform the vector from covariant to contravariant    //////////////// THIS GIVES NO PROBLEEEEMS??? WHAT THE HELL                             
+             v.nabla.div(v.tmp3[0], v.tmp3[1], result);
              dg::blas1::scal(result, v.p.tau[1]);            
         }
     },
-    {"v_dielec_adv_part_tt", "Partial dielectric tensor term (time integrated)", true, //FINAL
+    {"v_dielec_adv_part_tt", "Partial dielectric tensor term (time integrated)", true, //FINAL checked
         []( DVec& result, Variables& v) {            
              v.nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); //u_E
@@ -543,20 +548,22 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDivide(v.f.binv(), v.tmp2[0], v.tmp2[0]);
              dg::blas1::pointwiseDivide(v.f.binv(), v.f.gradN(1)[1], v.tmp2[1]);
              dg::blas1::pointwiseDivide(v.f.binv(), v.tmp2[1], v.tmp2[1]);             
+             dg::tensor::multiply2d(v.f.projection(), v.tmp2[0], v.tmp2[1], v.tmp2[0], v.tmp2[1]); //to transform the vector from covariant to contravariant    //////////////// THIS GIVES NO PROBLEEEEMS??? WHAT THE HELL                               
              v.nabla.div(v.tmp2[0],v.tmp2[1], v.tmp[2]);
 			 dg::blas1::pointwiseDot(v.tmp[2], v.tmp[0], v.tmp[0]);
-             dg::blas1::pointwiseDot(v.tmp[2], v.tmp[1], v.tmp[1]);          
+             dg::blas1::pointwiseDot(v.tmp[2], v.tmp[1], v.tmp[1]);      
+             dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant    //////////////// THIS GIVES NO PROBLEEEEMS??? WHAT THE HELL                                             
              v.nabla.div(v.tmp[0], v.tmp[1], result);
              dg::blas1::scal(result, v.p.tau[1]);            
         }
     },
-    {"v_M_em_tt", "Magnetization term (time integrated)", true, //FINAL
+    {"v_M_em_tt", "Magnetization term (time integrated)", true, //FINAL checked
         []( DVec& result, Variables& v) {     
-             v.nabla.b_cross_v (v.f.gradA()[0], v.f.gradA()[1], v.tmp[1], v.tmp[2]);
+             v.nabla.b_cross_v (v.f.gradA()[0], v.f.gradA()[1], v.tmp[0], v.tmp[1]);
+             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[2], v.tmp[2]);
-             dg::blas1::scal(v.tmp[1], -1);
-             dg::blas1::scal(v.tmp[2], -1);//b_\perp
+             dg::blas1::scal(v.tmp[0], -1);
+             dg::blas1::scal(v.tmp[1], -1);//b_\perp
 
 			 dg::blas1::pointwiseDot(v.f.velocity(1), v.f.gradN(1)[0], v.tmp2[0]);
              dg::blas1::pointwiseDot(v.f.velocity(1), v.f.gradN(1)[1], v.tmp2[1]);
@@ -569,12 +576,13 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp3[1], v.tmp3[1]);
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp3[1], v.tmp3[1]);//M^em            
              v.nabla.div(v.tmp3[0], v.tmp3[1], result);
-             v.nabla.v_dot_nabla_f(v.tmp3[0], v.tmp3[1], v.tmp[1], v.tmp2[0]); 
-             v.nabla.v_dot_nabla_f(v.tmp3[0], v.tmp3[1], v.tmp[2], v.tmp2[1]); 
-             dg::blas1::pointwiseDot(result, v.tmp[1], v.tmp[1]);//div(N grad(phi)/B^2)*u_E
-             dg::blas1::pointwiseDot(result, v.tmp[2], v.tmp[2]);          
-             dg::blas1::axpby(1,v.tmp[1], 1, v.tmp2[0]);
-             dg::blas1::axpby(1,v.tmp[2], 1, v.tmp2[1]);
+             dg::blas1::pointwiseDot(result, v.tmp[0], v.tmp2[0]);//div(N grad(phi)/B^2)*u_E
+             dg::blas1::pointwiseDot(result, v.tmp[1], v.tmp2[1]);   
+             v.nabla.v_dot_nabla_f(v.tmp3[0], v.tmp3[1], v.tmp[0], v.tmp[2]); 
+             v.nabla.v_dot_nabla_f(v.tmp3[0], v.tmp3[1], v.tmp[1], v.tmp2[2]); 
+       
+             dg::blas1::axpby(1,v.tmp[2], 1, v.tmp2[0]);
+             dg::blas1::axpby(1,v.tmp2[2], 1, v.tmp2[1]);
              v.nabla.div(v.tmp2[0], v.tmp2[1], result);
              dg::blas1::scal(result, v.p.tau[1]);     
         }
