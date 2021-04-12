@@ -704,9 +704,9 @@ std::vector<Record> diagnostics2d_list = {
 			dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), v.tmp[0]);
             dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., v.tmp[0]);
             dg::blas1::pointwiseDot(v.f.induction(), v.tmp[0], v.tmp[0]);  
-            dg::blas1::pointwiseDot(v.tmp[0], v.f.curvKappa()[0], v.tmp1[0]);
-            dg::blas1::pointwiseDot(v.tmp[0], v.f.curvKappa()[1], v.tmp1[1]);               
-            v.nabla.div(v.tmp1[0], v.tmp1[1], result);           
+            dg::blas1::pointwiseDot(v.tmp[0], v.f.curvKappa()[0], v.tmp2[0]);
+            dg::blas1::pointwiseDot(v.tmp[0], v.f.curvKappa()[1], v.tmp2[1]);               
+            v.nabla.div(v.tmp2[0], v.tmp2[1], result);           
         }
     },    
     {"v_curv_tt", "curvature term (time integrated)", true, //FINAL
