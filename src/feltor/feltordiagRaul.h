@@ -458,7 +458,6 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);    
              dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);  
              dg::tensor::multiply2d(v.f.projection(), v.tmp[0], v.tmp[1], v.tmp[0], v.tmp[1]); //to transform the vector from covariant to contravariant
-             //AM I USING HERE RIGHT THE PROJECTION? gradP(0) is covariant? symv is the covariant derivative (just to confirm)?
              v.nabla.div(v.tmp[0], v.tmp[1], result); 
         }
     },   
@@ -758,66 +757,34 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::scal(result, v.p.tau[1]);      
         }
     },       
-    /*
-    {"elec_extra_term_tt", "Electric extra term (time integrated)", true, //FINAL
-        []( DVec& result, Variables& v) {             
-             v.nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp[0], v.tmp[1]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[1], v.tmp[1]); //u_e/B^2
-                        
-             dg::blas1::pointwiseDot(v.tmp[0], v.f.gradN(1)[0], v.tmp2[0]);
-             dg::blas1::pointwiseDot(v.tmp[1], v.f.gradN(1)[1], v.tmp2[1]);
-             dg::blas1::axpby(1, v.tmp2[0], 1, v.tmp2[1]);
-             v.nabla.div(v.tmp[0], v.tmp[1], v.tmp[0]);
-             dg::blas1::pointwiseDot(v.f.density(1), v.tmp[0], v.tmp[0]);
-             dg::blas1::axpby(1, v.tmp2[1], 1, v.tmp[0]);
-             v.nabla.Grad_perp_f(v.tmp[0], v.tmp[1], v.tmp[2]);
-             v.nabla.div(v.tmp[1], v.tmp[2], result);  
-             dg::blas1::scal(result, v.p.tau[1]);          
+        
+       /// -----------------Radial Force Balance terms --------------------//
+      {"E_r", "Radial electric field", true, //FINAL
+        []( DVec& result, Variables& v) {
+		routines::dot( v.f.gradP(0), v.gradPsip, result);
+		const std::array<DVec, 3>& gradP = v.gradPsip;
+        dg::tensor::multiply3d( v.f.projection(), //grad_perp
+             gradP[0], gradP[1], gradP[2], v.tmp[0], v.tmp[1], v.tmp[2]);
+        routines::dot(gradP, v.tmp, gradP);
+		dg::blas1::transform( gradP, gradP, dg::SQRT<double>());
+		dg::blas1::pointwiseDivide(result, gradP, result);
         }
-    },    
-    {"par_extra_term_tt", "Parallel extra term (time integrated)", true, //FINAL
-        []( DVec& result, Variables& v) { 
-             dg::blas1::pointwiseDot(v.f.velocity(1), v.f.gradN(1)[0], v.tmp[0]);
-             dg::blas1::pointwiseDot(v.f.velocity(1), v.f.gradN(1)[1], v.tmp[1]);
-             dg::blas1::pointwiseDot(v.f.density(1), v.f.gradU(1)[0], v.tmp2[0]);
-             dg::blas1::pointwiseDot(v.f.density(1), v.f.gradU(1)[1], v.tmp2[1]);
-             dg::blas1::axpby(1, v.tmp2[0], 1, v.tmp[0]);
-             dg::blas1::axpby(1, v.tmp2[1], 1, v.tmp[1]); //U grad N+N grad U
-                         
-             v.nabla.b_cross_v(v.f.gradP(0)[0], v.f.gradP(0)[1], v.tmp2[0], v.tmp2[1]);
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[0], v.tmp2[0]); 
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp2[1], v.tmp2[1]); //b_perp
-                				
-			 dg::blas1::pointwiseDot(v.tmp[0], v.tmp2[0], v.tmp[0]);
-			 dg::blas1::pointwiseDot(v.tmp[1], v.tmp2[1], v.tmp[1]);
-			 dg::blas1::axpby(1, v.tmp[1], 1, v.tmp[0]);
-			 dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]);    
-             dg::blas1::pointwiseDot(v.f.binv(), v.tmp[0], v.tmp[0]); 
-             v.nabla.Grad_perp_f(v.tmp[0], v.tmp[1], v.tmp[2]);
-             v.nabla.div(v.tmp[1], v.tmp[2], result); 
-             dg::blas1::scal(result, v.p.tau[1]);         
+    },     
+      {"RFB_dPi_dr", "Radial gradient of ion pressure", true, //FINAL
+        []( DVec& result, Variables& v) {
+		routines::dot( v.f.gradN(1), v.gradPsip, result);
+		const std::array<DVec, 3>& gradP = v.gradPsip;
+        dg::tensor::multiply3d( v.f.projection(), //grad_perp
+             gradP[0], gradP[1], gradP[2], v.tmp[0], v.tmp[1], v.tmp[2]);
+        routines::dot(gradP, v.tmp, gradP);
+		dg::blas1::transform( gradP, gradP, dg::SQRT<double>());
+		dg::blas1::pointwiseDivide(result, gradP, result);
+		dg::blas1::pointwiseDivide(result, v.f.density(1), result);
+		dg::blas1::scal(result, v.p.tau[1]); 
         }
     },
-    */
-    ///----------------------EXTRA RAUL ADDITION-------------------------///
-    
-    //    {"er", "Radial electric field", false,
-    //    []( DVec& result, Variables& v){
-	//		dg::blas1::copy()
-    //    }
-    //},  
-    // {"par_J", "Parallel current", false,
-    //    []( DVec& result, Variables& v ) {
-    //        dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), result);
-    //        dg::blas1::pointwiseDot(-1., v.f.density(0), v.f.velocity(0), 1., result);
-    //    }
-    //},
-        /// -----------------Miscellaneous additions --------------------//
+        /// -----------------Miscellaneous additions --------------------// 
+        /*
     {"vorticity", "Minus Lap_perp of electric potential", false,
         []( DVec& result, Variables& v ) {
              dg::blas1::copy(v.f.lapMperpP(0), result);
@@ -888,6 +855,7 @@ std::vector<Record> diagnostics2d_list = {
                 v.f.potential(0), v.f.density(0), result);
         }
     },
+    */
     /// ------------------ Density terms ------------------------//
     {"jsneE_tt", "Radial electron particle flux: ExB contribution (Time average)", true,
         []( DVec& result, Variables& v ) {
@@ -1018,6 +986,7 @@ std::vector<Record> diagnostics2d_list = {
         }
     },
     /// ------------------- Energy terms ------------------------//
+    /*
     {"nelnne", "Entropy electrons", false,
         []( DVec& result, Variables& v ) {
             dg::blas1::transform( v.f.density(0), result, dg::LN<double>());
@@ -1196,6 +1165,7 @@ std::vector<Record> diagnostics2d_list = {
             dg::blas1::scal( result, v.p.nu_parallel[1]);
         }
     },
+    */
     /// ------------------------ Vorticity terms ---------------------------//
     {"oexbi", "ExB vorticity term with ion density", false,
         []( DVec& result, Variables& v){
@@ -1495,6 +1465,7 @@ std::vector<Record> diagnostics2d_list = {
         }
     },
     /// --------------------- Parallel momentum source terms ---------------------//
+    /*
     //Not so important (and probably not accurate)
     {"sparpar_tt", "Parallel Source for parallel momentum", true,
         []( DVec& result, Variables& v ) {
@@ -1640,6 +1611,7 @@ std::vector<Record> diagnostics2d_list = {
             dg::blas1::pointwiseDot( v.f.density_source(0), v.hoo, result);
         }
     },
+    */
 };
 
 ///%%%%%%%%%%%%%%%%%%%%%%%%%%END DIAGNOSTICS LIST%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

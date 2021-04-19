@@ -7,7 +7,7 @@ include ../../config/devices/devices.mk
 
 INCLUDE+= -I../         # other src libraries
 INCLUDE+= -I../../inc   # other project libraries
-#INCLUDE+= -L /home/raulgerru/anaconda3/lib #ONLY IN RAUL'S LAPTOP
+INCLUDE+= -L /home/raulgerru/anaconda3/lib #ONLY IN RAUL'S LAPTOP
 
 all: feltor_hpc feltor feltor_mpi manufactured feltordiag interpolate_in_3d
 
@@ -17,7 +17,7 @@ manufactured: manufactured.cu manufactured.h feltor.h implicit.h
 implicit_t: implicit_t.cu implicit.h  feltor.h implicit.h
 	$(CC) $(OPT) $(CFLAGS) $< -o $@ $(INCLUDE) $(JSONLIB) -g -DDG_BENCHMARK
 
-feltordiag: feltordiag.cu feltordiagRaul.h
+feltordiag: feltordiagRaul.cu feltordiagRaul.h
 	$(CC) $(OPT) $(CFLAGS) $< -o $@ $(INCLUDE) $(LIBS) $(JSONLIB) -g
 interpolate_in_3d: interpolate_in_3d.cu feltordiag.h
 	$(CC) $(OPT) $(CFLAGS) $< -o $@ $(INCLUDE) $(LIBS) $(JSONLIB) -g
