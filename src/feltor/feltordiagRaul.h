@@ -761,24 +761,24 @@ std::vector<Record> diagnostics2d_list = {
        /// -----------------Radial Force Balance terms --------------------//
       {"E_r", "Radial electric field", true, //FINAL
         []( DVec& result, Variables& v) {
-		routines::dot( v.f.gradP(0), v.gradPsip, result);
 		const std::array<DVec, 3>& gradP = v.gradPsip;
         dg::tensor::multiply3d( v.f.projection(), //grad_perp
              gradP[0], gradP[1], gradP[2], v.tmp[0], v.tmp[1], v.tmp[2]);
-        routines::dot(gradP, v.tmp, gradP);
-		dg::blas1::transform( gradP, gradP, dg::SQRT<double>());
-		dg::blas1::pointwiseDivide(result, gradP, result);
+        routines::dot(gradP, v.tmp, result);
+		dg::blas1::transform( result, result, dg::SQRT<double>());		
+		routines::dot( v.f.gradP(0), v.gradPsip, v.tmp[0]);
+		dg::blas1::pointwiseDivide(v.tmp[0], result, result);
         }
     },     
       {"RFB_dPi_dr", "Radial gradient of ion pressure", true, //FINAL
         []( DVec& result, Variables& v) {
-		routines::dot( v.f.gradN(1), v.gradPsip, result);
 		const std::array<DVec, 3>& gradP = v.gradPsip;
         dg::tensor::multiply3d( v.f.projection(), //grad_perp
              gradP[0], gradP[1], gradP[2], v.tmp[0], v.tmp[1], v.tmp[2]);
-        routines::dot(gradP, v.tmp, gradP);
-		dg::blas1::transform( gradP, gradP, dg::SQRT<double>());
-		dg::blas1::pointwiseDivide(result, gradP, result);
+        routines::dot(gradP, v.tmp, result);
+		dg::blas1::transform( result, result, dg::SQRT<double>());
+		routines::dot( v.f.gradN(1), v.gradPsip, v.tmp[0]);
+		dg::blas1::pointwiseDivide(v.tmp[0], result, result);
 		dg::blas1::pointwiseDivide(result, v.f.density(1), result);
 		dg::blas1::scal(result, v.p.tau[1]); 
         }
